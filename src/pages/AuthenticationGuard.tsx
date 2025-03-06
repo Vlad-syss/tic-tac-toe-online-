@@ -1,14 +1,21 @@
-import { useAuth0 } from '@auth0/auth0-react'
+import { Loader2 } from 'lucide-react'
 import { Navigate, Outlet } from 'react-router'
 import { Container } from '../components/Container'
+import { useStoreUserEffect } from '../hooks'
 import { Footer } from './_components/Footer'
 import { Header } from './_components/Header'
 
 export function AuthenticationGuard() {
-	const { isAuthenticated, isLoading } = useAuth0()
+	const { isAuthenticated, isLoading } = useStoreUserEffect()
 
 	if (isLoading) {
-		return <Container>Loading...</Container>
+		return (
+			<Container>
+				<div className='w-full h-full flex items-center justify-center'>
+					<Loader2 className='animate-spin' />
+				</div>
+			</Container>
+		)
 	}
 
 	if (!isAuthenticated) {
