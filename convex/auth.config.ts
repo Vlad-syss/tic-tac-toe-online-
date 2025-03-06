@@ -1,8 +1,8 @@
 export default {
 	providers: [
 		{
-			domain: process.env.AUTH0_DOMAIN,
-			applicationID: process.env.AUTH0_CLIENT_ID,
+			domain: process.env.VITE_AUTH0_DOMAIN,
+			applicationID: process.env.VITE_AUTH0_CLIENT_ID,
 		},
 	],
 }
