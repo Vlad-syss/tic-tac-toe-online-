@@ -51,7 +51,7 @@ export const getUser = query({
 	handler: async ctx => {
 		const userIdentity = await ctx.auth.getUserIdentity() // get detailes about current authincated user
 		if (!userIdentity) {
-			throw new Error('Called storeUser without authentication present')
+			throw new Error('Called getUser without authentication present')
 		}
 
 		// Find the user by email
@@ -65,5 +65,15 @@ export const getUser = query({
 		}
 
 		return user
+	},
+})
+
+export const updateUser = mutation({
+	args: {},
+	handler: async ctx => {
+		const userIdentity = await ctx.auth.getUserIdentity() // get detailes about current authincated user
+		if (!userIdentity) {
+			throw new Error('Called updateUser without authentication present')
+		}
 	},
 })
