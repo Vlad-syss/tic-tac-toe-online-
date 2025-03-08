@@ -1,5 +1,4 @@
 import { Logo } from '../../components/Logo'
-import { LogoutButton } from '../../components/LogoutButton'
 import { MainTitle } from '../../components/MainTitle'
 import { Profile } from '../../components/Profile'
 
@@ -11,7 +10,6 @@ export const Header = () => {
 				<MainTitle />
 			</a>
 			<div className='flex items-center gap-2'>
-				<LogoutButton />
 				<Profile />
 			</div>
 		</header>
