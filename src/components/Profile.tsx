@@ -33,14 +33,14 @@ export const Profile = () => {
 		>
 			<div className='flex gap-2 select-none'>
 				<img
-					src={user.avatarUrl?.split('=')[0]}
+					src={user.avatarUrl?.split('=')[0] || './default-avatar.png'}
 					width={50}
 					height={50}
 					alt='profile_img'
-					className='rounded'
+					className='rounded border border-green-400'
 				/>
 				<div className='flex flex-col gap-0.5'>
-					<h4 className='text-sm'>{user.name}</h4>
+					<h4 className='text-sm truncate'>{user.name}</h4>
 					<p className='text-lime-800 text-xs leading-2'>
 						Rating online:{' '}
 						<span className='font-semibold'>{user.onlineRating}</span>
