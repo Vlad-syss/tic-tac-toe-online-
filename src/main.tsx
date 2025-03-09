@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import './main.css'
 import { AuthLayout, AuthenticationGuard, Home } from './pages'
+import { ProfilePage } from './pages/ProfilePage'
 import { Login } from './pages/_components'
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string)
@@ -28,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
 					<Routes>
 						<Route element={<AuthenticationGuard />}>
 							<Route path='/' element={<Home />} />
+							<Route path='/profile' element={<ProfilePage />} />
 						</Route>
 
 						<Route element={<AuthLayout />}>
