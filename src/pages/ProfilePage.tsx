@@ -1,9 +1,12 @@
-import { LoaderCircle, Upload } from 'lucide-react'
-import { Button } from '../components/Button'
+import { LoaderCircle } from 'lucide-react'
 import { useUser } from '../hooks'
+import { ProfileChange } from './_components/ChangeProfile'
 
 export function ProfilePage() {
 	const { user, isLoading } = useUser()
+	/**
+	 * fix image and name save
+	 */
 
 	if (isLoading) {
 		return <LoaderCircle className='animate-spin w-5 h-5' />
@@ -15,7 +18,7 @@ export function ProfilePage() {
 			<div className='w-full p-6 border-b-3 border-b-green-300'>
 				<div className='flex flex-row items-center'>
 					<img
-						src={user?.avatarUrl?.split('=')[0]}
+						src={user?.avatarUrl?.split('=')[0] || '/default-avatar.png'}
 						alt='Avatar'
 						width={150}
 						height={150}
@@ -76,30 +79,7 @@ export function ProfilePage() {
 				</div>
 			</div>
 
-			<div className='w-full'>
-				<div className='space-y-4'>
-					<h3 className='text-xl font-semibold text-green-800'>Edit Profile</h3>
-					<input
-						type='text'
-						defaultValue={user.name}
-						className='w-full px-4 py-3 border border-green-300 placeholder:text-green-800 text-green-900  rounded-md outline-0'
-						placeholder='Enter your name'
-					/>
-					<input
-						type='url'
-						defaultValue={user?.avatarUrl?.split('=')[0]}
-						className='w-full px-4 py-3 border border-green-300 placeholder:text-green-800 text-green-900 rounded-md outline-0'
-						placeholder='Enter avatar image URL'
-					/>
-					<Button
-						size='costum'
-						className='w-full flex gap-2 items-center py-4 mt-4 text-white bg-green-600 hover:bg-green-700 rounded-md'
-					>
-						Save Changes
-						<Upload />
-					</Button>
-				</div>
-			</div>
+			<ProfileChange {...user} />
 		</div>
 	)
 }
