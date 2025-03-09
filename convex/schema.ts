@@ -10,6 +10,8 @@ export default defineSchema({
 		avatarUrl: v.optional(v.string()),
 		onlineRating: v.number(),
 		offlineRating: v.number(),
+		totalGamesPlayed: v.number(),
+		highestWinStreak: v.number(),
 	}).index('by_email', ['email']),
 
 	games: defineTable({
