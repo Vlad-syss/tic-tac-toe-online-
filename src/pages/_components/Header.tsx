@@ -5,7 +5,7 @@ import { Profile } from '../../components/Profile'
 export const Header = () => {
 	return (
 		<header className='flex items-center py-2 justify-between border-b-2'>
-			<a href='' className='flex items-center gap-1'>
+			<a href='/' className='flex items-center gap-1'>
 				<Logo size={65} />
 				<MainTitle />
 			</a>
