@@ -3,13 +3,7 @@ import cn from 'classnames'
 import { Loader, LogOut } from 'lucide-react'
 import { Button } from './Button'
 
-export const LogoutButton = ({
-	id,
-	className,
-}: {
-	id?: string
-	className?: string
-}) => {
+export const LogoutButton = ({ className }: { className?: string }) => {
 	const { logout, isLoading } = useAuth0()
 
 	return (
@@ -17,7 +11,7 @@ export const LogoutButton = ({
 			variant='greenLight'
 			size='costum'
 			className={cn('rounded-xl', className)}
-			id={id}
+			id='logout'
 			onClick={() =>
 				logout({ logoutParams: { returnTo: 'http://localhost:5173/' } })
 			}

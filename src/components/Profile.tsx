@@ -13,7 +13,6 @@ export const Profile = () => {
 	const handleOpenModal = () => {
 		if (profileRef.current) {
 			const rect = profileRef.current.getBoundingClientRect()
-			console.log(rect)
 
 			setModalPosition({
 				x: rect.left + window.scrollX,
