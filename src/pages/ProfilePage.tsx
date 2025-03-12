@@ -1,12 +1,9 @@
 import { LoaderCircle } from 'lucide-react'
 import { useUser } from '../hooks'
-import { ProfileChange } from './_components/ChangeProfile'
+import { ProfileChange, StatsProfile } from './_components'
 
 export function ProfilePage() {
 	const { user, isLoading } = useUser()
-	/**
-	 * fix image and name save
-	 */
 
 	if (isLoading) {
 		return <LoaderCircle className='animate-spin w-5 h-5' />
@@ -53,32 +50,7 @@ export function ProfilePage() {
 				</div>
 			</div>
 
-			<div className='grid grid-cols-4 gap-3 text-sm text-gray-700'>
-				<div>
-					<p className='font-medium'> Total Games</p>
-					<p className='text-lg font-semibold'>{user.totalGamesPlayed || 0}</p>
-				</div>
-
-				<div>
-					<p className='font-medium'>Highest Win Strick</p>
-					<p className='text-lg font-semibold'>{user.highestWinStreak || 0}</p>
-				</div>
-
-				<div>
-					<p className='font-medium'>Online Rating</p>
-					<p className='text-lg font-semibold text-green-700'>
-						{user.onlineRating || 'Not Rated'}
-					</p>
-				</div>
-
-				<div>
-					<p className='font-medium'>Offline Rating</p>
-					<p className='text-lg font-semibold text-green-700'>
-						{user.offlineRating || 'Not Rated'}
-					</p>
-				</div>
-			</div>
-
+			<StatsProfile {...user} />
 			<ProfileChange {...user} />
 		</div>
 	)

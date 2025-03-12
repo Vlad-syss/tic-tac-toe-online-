@@ -2,8 +2,7 @@ import { Loader2 } from 'lucide-react'
 import { Navigate, Outlet } from 'react-router'
 import { Container } from '../components/Container'
 import { useStoreUserEffect } from '../hooks'
-import { Footer } from './_components/Footer'
-import { Header } from './_components/Header'
+import { Footer, Header } from './_components'
 
 export function AuthenticationGuard() {
 	const { isAuthenticated, isLoading } = useStoreUserEffect()

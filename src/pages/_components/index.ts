@@ -1,1 +1,5 @@
+export { ProfileChange } from './ChangeProfile'
+export { Footer } from './Footer'
+export { Header } from './Header'
 export { Login } from './Login'
+export { StatsProfile } from './StatsProfile'
