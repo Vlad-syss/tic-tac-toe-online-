@@ -2,7 +2,7 @@ import { Github, Linkedin, Mail } from 'lucide-react'
 
 export const Footer = () => {
 	return (
-		<footer className='flex-[0_0_auto] flex items-center justify-between gap-1'>
+		<footer className='flex-[0_0_auto] flex items-center justify-between gap-1 py-2'>
 			<article className='text-xs'>
 				<h4>
 					©Project{' '}
