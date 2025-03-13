@@ -12,6 +12,7 @@ const buttonVariants = cva(
 					'border border-green-500 text-green-500 hover:bg-green-100',
 				greenDark: 'bg-green-700 text-white hover:bg-green-800',
 				greenLight: 'bg-green-300 text-green-900 hover:bg-green-400',
+				costume: '',
 			},
 			size: {
 				default: 'h-10 px-4 py-2 rounded-[5px]',

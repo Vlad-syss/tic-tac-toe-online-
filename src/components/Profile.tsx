@@ -27,18 +27,18 @@ export const Profile = () => {
 	}
 	if (!user) return <p>User not found</p>
 	return (
-		<div
-			className='relative flex gap-2 items-top group cursor-pointer'
-			ref={profileRef}
-		>
+		<div className='relative flex gap-2 items-top group' ref={profileRef}>
 			<div className='flex gap-2 select-none'>
-				<img
-					src={user.avatarUrl?.split('=')[0] || './default-avatar.png'}
-					width={50}
-					height={50}
-					alt='profile_img'
-					className='rounded border border-green-400'
-				/>
+				<a href='/profile' className='cursor-pointer'>
+					<img
+						src={user.avatarUrl?.split('=')[0] || './default-avatar.png'}
+						width={50}
+						height={50}
+						alt='profile_img'
+						className='rounded border border-green-400'
+					/>
+				</a>
+
 				<div className='flex flex-col gap-0.5'>
 					<h4 className='text-sm truncate'>{user.name}</h4>
 					<p className='text-lime-800 text-xs leading-2'>
