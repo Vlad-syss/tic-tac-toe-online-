@@ -6,7 +6,7 @@ export function Leaderboard() {
 	const navigate = useNavigate()
 
 	return (
-		<div className='flex flex-col items-center p-8 bg-yellow-100 h-max rounded-lg shadow-lg w-full'>
+		<div className='flex flex-col items-center p-8 bg-yellow-100/60 h-max rounded-lg shadow-2xl w-full'>
 			<Trophy className='text-yellow-600' size={48} />
 			<h2 className='text-4xl font-bold text-yellow-800'>Leaderboard</h2>
 			<p className='text-lg text-yellow-700'>Check out the best players!</p>
