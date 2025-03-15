@@ -1,6 +1,6 @@
 import { LoaderCircle } from 'lucide-react'
-import { useUser } from '../hooks'
-import { ProfileChange, StatsProfile } from './_components'
+import { useUser } from '../../hooks'
+import { ProfileChange, StatsProfile } from '../_components'
 
 export function ProfilePage() {
 	const { user, isLoading } = useUser()

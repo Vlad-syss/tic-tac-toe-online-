@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router'
-import { Logo } from '../components/Logo'
-import { MainTitle } from '../components/MainTitle'
+import { Logo } from '../../components/Logo'
+import { MainTitle } from '../../components/MainTitle'
 
 export function AuthLayout() {
 	return (

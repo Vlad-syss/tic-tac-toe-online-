@@ -1,5 +1,5 @@
-export { ProfileChange } from './ChangeProfile'
+export { Login } from '../login/Login'
+export { ProfileChange } from '../profile/ChangeProfile'
+export { StatsProfile } from '../profile/StatsProfile'
 export { Footer } from './Footer'
 export { Header } from './Header'
-export { Login } from './Login'
-export { StatsProfile } from './StatsProfile'
