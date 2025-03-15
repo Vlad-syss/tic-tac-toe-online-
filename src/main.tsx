@@ -5,9 +5,15 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import './main.css'
-import { AuthLayout, AuthenticationGuard, Home } from './pages'
-import { ProfilePage } from './pages/ProfilePage'
+import {
+	AuthLayout,
+	AuthenticationGuard,
+	GamePage,
+	Home,
+	ProfilePage,
+} from './pages'
 import { Login } from './pages/_components'
+import { AIGame, OnlineGame, TwovTwoGame } from './pages/game'
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string)
 
@@ -28,9 +34,14 @@ createRoot(document.getElementById('root')!).render(
 				<BrowserRouter>
 					<Routes>
 						<Route element={<AuthenticationGuard />}>
-							<Route index path='/' element={<Home />} />
+							<Route path='/' element={<Home />} />
 							<Route path='*' element={<Home />} />
 							<Route path='/profile' element={<ProfilePage />} />
+							<Route path='/game' element={<GamePage />}>
+								<Route path='ai' element={<AIGame />} />
+								<Route path='online' element={<OnlineGame />} />
+								<Route path='2v2' element={<TwovTwoGame />} />
+							</Route>
 						</Route>
 
 						<Route element={<AuthLayout />}>
