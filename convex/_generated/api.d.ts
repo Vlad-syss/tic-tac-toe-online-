@@ -13,6 +13,9 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as ai from "../ai.js";
+import type * as games from "../games.js";
+import type * as moves from "../moves.js";
 import type * as users from "../users.js";
 
 /**
@@ -24,6 +27,9 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  ai: typeof ai;
+  games: typeof games;
+  moves: typeof moves;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

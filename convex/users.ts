@@ -40,6 +40,7 @@ export const store = mutation({
 			offlineRating: 1000,
 			totalGamesPlayed: 0,
 			highestWinStreak: 0,
+			totalWins: 0,
 		})
 	},
 })
@@ -104,6 +105,7 @@ export const updateUser = mutation({
 			totalGamesPlayed: number
 			highestWinStreak: number
 			avatarUrl?: string
+			totalWins: number
 		} = {
 			tokenIdentifier: userIdentity.tokenIdentifier,
 			name: args.name ?? userIdentity.name ?? 'Anonymous',
@@ -111,6 +113,7 @@ export const updateUser = mutation({
 			offlineRating: 1000, // Default starting rating
 			totalGamesPlayed: 0,
 			highestWinStreak: 0,
+			totalWins: 0,
 		}
 
 		if (args.avatarUrl !== undefined) {
