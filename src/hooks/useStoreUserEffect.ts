@@ -8,7 +8,7 @@ export function useStoreUserEffect() {
 	const { isLoading, isAuthenticated } = useConvexAuth()
 	const { user } = useAuth0()
 	const [userId, setUserId] = useState<Id<'users'> | null>(null)
-	const storeUser = useMutation(api.users.store)
+	const storeUser = useMutation(api.users.users_controller.store)
 
 	useEffect(() => {
 		if (!isAuthenticated) {
