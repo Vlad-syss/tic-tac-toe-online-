@@ -24,17 +24,24 @@ export interface Cell {
 	symbol: SymbolType | null
 }
 
+export interface Player {
+	user: {
+		_id: Id<'users'>
+	}
+}
+
 export interface GameState {
 	board: Cell[][]
-	players: { user: GameUser; symbol: SymbolType }[]
+	userIds: Id<'users'>[]
 	currentPlayerIndex: number
 	gameMode: GameMode
 	gameStatus: GameStatus
-	winner?: string | null
+	winner?: Id<'users'> | null
 	isDraw: boolean
 	createdAt: string
 	updatedAt: string
 	fieldSize: number
+	players: Player[] // Add this line
 }
 
 export interface TicTacToeGame {
