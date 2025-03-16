@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
-import { Doc } from './_generated/dataModel'
-import { mutation, query } from './_generated/server'
+import { Doc } from '../_generated/dataModel'
+import { mutation, query } from '../_generated/server'
 
 export const store = mutation({
 	args: {},
@@ -17,7 +17,6 @@ export const store = mutation({
 
 		if (existingUser) {
 			const updates: Partial<Doc<'users'>> = {}
-			// Only update the avatar if needed
 			if (
 				userIdentity.picture &&
 				existingUser.avatarUrl !== userIdentity.picture
@@ -48,12 +47,11 @@ export const store = mutation({
 export const getUser = query({
 	args: {},
 	handler: async ctx => {
-		const userIdentity = await ctx.auth.getUserIdentity() // get detailes about current authincated user
+		const userIdentity = await ctx.auth.getUserIdentity()
 		if (!userIdentity) {
 			throw new Error('Called getUser without authentication present')
 		}
 
-		// Find the user by email
 		const user = await ctx.db
 			.query('users')
 			.withIndex('by_email', q => q.eq('email', userIdentity.email))
@@ -70,15 +68,15 @@ export const getUser = query({
 export const updateUser = mutation({
 	args: { name: v.optional(v.string()), avatarUrl: v.optional(v.string()) },
 	handler: async (ctx, args) => {
-		const userIdentity = await ctx.auth.getUserIdentity() // Get details about current authenticated user
+		const userIdentity = await ctx.auth.getUserIdentity()
 		if (!userIdentity) {
 			throw new Error('Called updateUser without authentication present')
 		}
 
-		const existingUser = await ctx.db // Check if user already exists
+		const existingUser = await ctx.db
 			.query('users')
 			.withIndex('by_email', q => q.eq('email', userIdentity.email))
-			.unique() // Ensure only unique data
+			.unique()
 
 		if (existingUser !== null) {
 			const updates: Partial<{ name: string; avatarUrl?: string }> = {}
@@ -87,19 +85,19 @@ export const updateUser = mutation({
 				updates.name = args.name
 			}
 			if (args.avatarUrl !== undefined) {
-				updates.avatarUrl = args.avatarUrl as string | undefined // Explicitly cast
+				updates.avatarUrl = args.avatarUrl as string | undefined
 			}
 
 			if (Object.keys(updates).length > 0) {
-				await ctx.db.patch(existingUser._id, updates) // Update only if changes exist
+				await ctx.db.patch(existingUser._id, updates)
 			}
 
 			return existingUser._id
 		}
 
 		const userData: {
-			tokenIdentifier: string
 			name: string
+			email: string
 			onlineRating: number
 			offlineRating: number
 			totalGamesPlayed: number
@@ -107,10 +105,10 @@ export const updateUser = mutation({
 			avatarUrl?: string
 			totalWins: number
 		} = {
-			tokenIdentifier: userIdentity.tokenIdentifier,
 			name: args.name ?? userIdentity.name ?? 'Anonymous',
-			onlineRating: 1000, // Default starting rating
-			offlineRating: 1000, // Default starting rating
+			email: userIdentity.email ?? '',
+			onlineRating: 1000,
+			offlineRating: 1000,
 			totalGamesPlayed: 0,
 			highestWinStreak: 0,
 			totalWins: 0,
