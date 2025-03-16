@@ -51,12 +51,12 @@ export function GameModes() {
 					size='costum'
 					className={cn(
 						'px-4 py-2 rounded-lg text-white hover:bg-green-600',
-						boardSize === 100 && 'bg-green-800',
-						boardSize !== 100 && 'bg-green-900/50'
+						boardSize === 10 && 'bg-green-800',
+						boardSize !== 10 && 'bg-green-900/50'
 					)}
-					onClick={() => setBoardSize(100)}
+					onClick={() => setBoardSize(10)}
 				>
-					100x100
+					10x10
 				</Button>
 			</div>
 
