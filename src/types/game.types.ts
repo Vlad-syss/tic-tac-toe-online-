@@ -10,7 +10,7 @@ export type GameMode = 'AI' | 'Online' | '2v2'
 export type GameStatus = 'waiting' | 'in_progress' | 'completed' | 'canceled'
 
 export interface Move {
-	gameId: string
+	gameId: Id<'games'>
 	playerId: string
 	row: number
 	col: number
@@ -21,7 +21,7 @@ export interface Move {
 export interface Cell {
 	row: number
 	col: number
-	symbol: SymbolType | null
+	symbol: SymbolType | ''
 }
 
 export interface Player {
