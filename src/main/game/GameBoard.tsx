@@ -10,24 +10,28 @@ interface GameBoardProps {
 export const GameBoard = ({ board, onClick }: GameBoardProps) => {
 	return (
 		<div
-			style={{
-				display: 'grid',
-				gridTemplateColumns: `repeat(${board.length}, 100px)`, // Dynamic grid columns
-				gap: '5px',
-			}}
+			className={`grid gap-2`}
+			style={{ gridTemplateColumns: `repeat(${board.length}, 120px)` }}
 		>
 			{board.map((row, rowIndex) =>
 				row.map((cell, colIndex) => (
 					<button
 						key={`${rowIndex}-${colIndex}`}
-						style={{
-							width: '100px',
-							height: '100px',
-							fontSize: '24px',
-							background: 'lightgray',
-						}}
-						onClick={() => onClick(rowIndex, colIndex)} // Pass row and col
-						className='cursor-pointer'
+						className={`
+                            w-[120px]
+                            h-[120px]
+                            text-4xl
+                            bg-green-300
+                            border-2
+                            border-green-200
+                            rounded-lg
+                            cursor-pointer
+                            flex
+                            items-center
+                            justify-center
+                            ${cell.symbol === 'X' ? 'text-green-800' : 'text-green-900'}
+                        `}
+						onClick={() => onClick(rowIndex, colIndex)}
 					>
 						{cell.symbol}
 					</button>
