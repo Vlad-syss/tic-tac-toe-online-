@@ -1,3 +1,5 @@
+import { TicTacToeGameComponent } from '../../main/game/TicTacToeGameComponent'
+
 export const OnlineGame = () => {
-	return <div>OnlineGame</div>
+	return <TicTacToeGameComponent gameMode='Online' />
 }

@@ -1,3 +1,5 @@
+import { TicTacToeGameComponent } from '../../main/game/TicTacToeGameComponent'
+
 export const TwovTwoGame = () => {
-	return <div>2v2Game</div>
+	return <TicTacToeGameComponent gameMode='2v2' />
 }
