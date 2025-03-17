@@ -1,6 +1,8 @@
 export { useChangeProfile } from './useChangeProfile'
 export { useChangeUser } from './useChangeUser'
 export { useGame } from './useGame'
+export { useGameStatus } from './useGameStatus'
 export { useMiniProfileModal } from './useMiniProfileModal'
 export { useStoreUserEffect } from './useStoreUserEffect'
+export { useTicTacToeGame } from './useTicTacToeGame'
 export { useUser } from './useUser'
