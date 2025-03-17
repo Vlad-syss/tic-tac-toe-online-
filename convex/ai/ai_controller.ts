@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { v } from 'convex/values'
 import { api } from '../_generated/api' // Import api
+import { Id } from '../_generated/dataModel'
 import { mutation } from '../_generated/server'
 
 const client = new GoogleGenerativeAI(process.env.VITE_GEMINI_APIKEY as string)
@@ -12,7 +13,6 @@ export const createGameWithAI = mutation({
 		fieldSize: v.number(),
 	},
 	handler: async (ctx, { userId, fieldSize }) => {
-		// Create AI player
 		const aiPlayer = await ctx.db.insert('users', {
 			name: 'AI Player',
 			onlineRating: 1500,
@@ -22,6 +22,14 @@ export const createGameWithAI = mutation({
 			totalWins: 0,
 		})
 
+		const board = Array.from({ length: fieldSize }, (_, rowIndex) =>
+			Array.from({ length: fieldSize }, (_, colIndex) => ({
+				symbol: '' as 'X' | 'O' | 'Square' | 'Triangle' | '',
+				row: rowIndex,
+				col: colIndex,
+			}))
+		)
+
 		const game = await ctx.db.insert('games', {
 			userIds: [userId, aiPlayer],
 			gameStatus: 'in_progress',
@@ -30,9 +38,10 @@ export const createGameWithAI = mutation({
 			isDraw: false,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
+			board,
+			currentTurn: userId, // User goes first
 		})
 
-		// Return the game ID
 		return game
 	},
 })
@@ -40,30 +49,31 @@ export const createGameWithAI = mutation({
 export const recordAIMove = mutation({
 	args: {
 		gameId: v.id('games'),
-		playerId: v.id('users'),
 		row: v.number(),
 		col: v.number(),
 	},
-	handler: async (ctx, { gameId, playerId, row, col }) => {
-		try {
-			await ctx.db.insert('moves', {
-				gameId,
-				playerId,
-				row,
-				col,
-				symbol: 'O', // AI always uses 'O'
-				createdAt: new Date().toISOString(),
-			})
-
-			await ctx.db.patch(gameId, {
-				updatedAt: new Date().toISOString(),
-			})
-
-			return { success: true }
-		} catch (error) {
-			console.error('Error inserting move:', error)
+	handler: async (ctx, { gameId, row, col }) => {
+		const game = await ctx.db.get(gameId)
+		if (!game) {
+			console.error('Game not found.')
 			return { success: false }
 		}
+
+		const newBoard = game.board.map((rowArr, rowIndex) =>
+			rowArr.map((cell, colIndex) =>
+				rowIndex === row && colIndex === col
+					? { ...cell, symbol: 'O' as 'X' | 'O' | 'Square' | 'Triangle' | '' }
+					: cell
+			)
+		)
+
+		await ctx.db.patch(gameId, {
+			board: newBoard,
+			updatedAt: new Date().toISOString(),
+			currentTurn: game.userIds[0] as Id<'users'>,
+		})
+
+		return { success: true }
 	},
 })
 
@@ -88,38 +98,17 @@ export const aiMakeMove = mutation({
 	args: {
 		gameId: v.id('games'),
 		playerId: v.id('users'),
-		board: v.optional(
-			v.array(
-				v.array(
-					v.object({
-						row: v.number(),
-						col: v.number(),
-						symbol: v.union(
-							v.literal('X'),
-							v.literal('O'),
-							v.literal('Square'),
-							v.literal('Triangle'),
-							v.null()
-						),
-					})
-				)
-			)
-		),
 		cacheBuster: v.optional(v.number()),
 	},
-	handler: async (ctx, { gameId, playerId, board }) => {
+	handler: async (ctx, { gameId, playerId }) => {
 		const game = await ctx.db.get(gameId)
 		if (!game) {
 			console.error('Game not found.')
 			return null
 		}
 
-		if (!board) {
-			console.error('Board is undefined in aiMakeMove mutation.')
-			return null
-		}
+		const board = game.board
 
-		// Schedule the action to run after this mutation completes
 		ctx.scheduler.runAfter(0, api.ai.ai_actions.generateAIMove, {
 			board,
 			fieldSize: game.fieldSize,

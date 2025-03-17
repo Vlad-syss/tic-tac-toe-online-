@@ -5,7 +5,10 @@ import { v } from 'convex/values'
 import { api } from '../_generated/api'
 import { action } from '../_generated/server'
 
-// Initialize the Google Generative AI client
+console.log('Gemini API Key:', process.env.VITE_GEMINI_APIKEY)
+if (!process.env.VITE_GEMINI_APIKEY) {
+	console.error('Gemini API Key is missing!')
+}
 const client = new GoogleGenerativeAI(process.env.VITE_GEMINI_APIKEY as string)
 const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
@@ -21,7 +24,7 @@ export const generateAIMove = action({
 						v.literal('O'),
 						v.literal('Square'),
 						v.literal('Triangle'),
-						v.null()
+						v.literal('')
 					),
 				})
 			)
@@ -32,43 +35,37 @@ export const generateAIMove = action({
 	},
 	handler: async (ctx, { board, fieldSize, gameId, playerId }) => {
 		try {
-			// Convert the board to a string representation for the AI
 			const boardString = board
 				.map(row => row.map(cell => cell.symbol || ' ').join('|'))
 				.join('\n')
 
-			// Create a prompt for the AI
 			const prompt = `
-You are playing a tic-tac-toe game on a ${fieldSize}x${fieldSize} board.
-You are playing as 'O' and your opponent is 'X'.
-Current board state:
-${boardString}
+					You are playing a tic-tac-toe game on a ${fieldSize}x${fieldSize} board.
+					You are playing as 'O' and your opponent is 'X'.
+					Current board state:
+					${boardString}
 
-Analyze the board and provide the best move as a JSON object with row and column indices (0-based).
-Only return the JSON object in this format: {"row": number, "col": number}
-Make sure the move is valid (the cell is empty).
-`
+					Analyze the board and provide the best move as a JSON object with row and column indices (0-based).
+					Only return the JSON object in this format: {"row": number, "col": number}
+					Make sure the move is valid (the cell is empty).
+					`
 
-			// Generate AI response
 			const result = await model.generateContent(prompt)
 			const response = result.response.text()
 
-			// Parse the JSON response
 			let move
 			try {
-				// Extract JSON from the response (in case AI includes extra text)
-				const jsonMatch = response.match(/\{.*\}/s)
+				const jsonMatch = response.match(/\{[\s\S]*?\}/) // More aggressive match
 				if (jsonMatch) {
 					move = JSON.parse(jsonMatch[0])
 				} else {
 					throw new Error('Could not find JSON in response')
 				}
-			} catch (error) {
-				console.error('Failed to parse AI response:', response)
+			} catch (parseError) {
+				console.error('Failed to parse AI response:', response, parseError)
 				throw new Error('Invalid AI response format')
 			}
 
-			// Validate the move
 			if (
 				typeof move.row !== 'number' ||
 				typeof move.col !== 'number' ||
@@ -81,12 +78,12 @@ Make sure the move is valid (the cell is empty).
 			}
 
 			// Check if the cell is already occupied
-			if (board[move.row][move.col].symbol !== null) {
+			if (board[move.row][move.col].symbol !== '') {
 				// Find a random empty cell as fallback
 				const emptyCells = []
 				for (let r = 0; r < fieldSize; r++) {
 					for (let c = 0; c < fieldSize; c++) {
-						if (board[r][c].symbol === null) {
+						if (board[r][c].symbol === '') {
 							emptyCells.push({ row: r, col: c })
 						}
 					}
@@ -101,7 +98,6 @@ Make sure the move is valid (the cell is empty).
 
 			await ctx.runMutation(api.ai.ai_controller.recordAIMove, {
 				gameId,
-				playerId,
 				row: move.row,
 				col: move.col,
 			})

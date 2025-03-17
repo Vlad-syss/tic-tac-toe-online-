@@ -17,7 +17,22 @@ export const gamesSchema = defineTable({
 	updatedAt: v.string(),
 	inviteCode: v.optional(v.string()),
 	teamAssignments: v.optional(v.array(v.number())),
-	currentTurn: v.optional(v.string()),
+	currentTurn: v.optional(v.id('users')),
+	board: v.array(
+		v.array(
+			v.object({
+				row: v.number(),
+				col: v.number(),
+				symbol: v.union(
+					v.literal('X'),
+					v.literal('O'),
+					v.literal('Square'),
+					v.literal('Triangle'),
+					v.literal('')
+				),
+			})
+		)
+	),
 })
 	.index('by_status', ['gameStatus'])
 	.index('by_invite_code', ['inviteCode'])
