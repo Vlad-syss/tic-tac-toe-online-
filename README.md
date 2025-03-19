@@ -11,22 +11,22 @@ This is a classic Tic Tac Toe game with additional features:
 - Implementation of the game with artificial intelligence.
 - Ability to play with other users via URL (online game).
 - Adding player ratings and leaderboards.
-- Support for different field sizes (3x3, 5x5, 100x100).
+- Support for different field sizes (3x3, 5x5, 10x10).
 - New shapes are added in 2v2 mode, for example, not only tic-tac-toe, but also squares and triangles.
 - The rating is different for playing with a bot or with people.
   Main features:
 
 1. Playing with a computer (AI):
-   - The user can choose the level of difficulty of the game with AI.
+   - The user can choose the level of difficulty of the game with AI. (not yet)
    - Minimax algorithm to determine the best moves of AI.
 2. Playing with other users:
    - Ability to create a game via a URL that can be sent to other users to join.
-   - Using Socket.IO for real-time and game synchronization.
+   - Using Convex Sinhronization for real-time and game synchronization.
 3. Ranking and statistics:
    - After each game, the player's ranking is saved.
    - Leaderboard with player rankings for playing with the computer and other users.
 4. Different field sizes:
-   - The player can choose the field size (3x3, 5x5, 100x100).
+   - The player can choose the field size (3x3, 5x5, 10x10).
    - In the game on large fields, you need to collect a line of 4 or more elements.
 5. 2-on-2 game:
    - Ability to play with a partner on the same side, where new figures are used, except for the cross and zero (for example, the square and the circle).
