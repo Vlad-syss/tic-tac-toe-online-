@@ -4,10 +4,10 @@ import { useSearchParams } from 'react-router'
 import { Id } from '../../../convex/_generated/dataModel'
 import { Button } from '../../components/Button'
 import { useGameStatus, useTicTacToeGame } from '../../hooks'
-import { GameBoard } from '../../main/game'
+import { GameBoard, ProfileBoard } from '../../main/game'
 
 interface TicTacToeGameComponentProps {
-	gameMode: 'AI' | 'Online' | '2v2'
+	gameMode: 'AI' | 'Online' | '1v1v1v1'
 }
 
 export const TicTacToeGameComponent = ({
@@ -43,7 +43,14 @@ export const TicTacToeGameComponent = ({
 						: '2v2 Game'}
 			</h2>
 			<div className='text-xl mb-4 text-green-700'>{statusMessage}</div>
-			<GameBoard board={gameState.board} onClick={handleCellClick} />
+			<div className='max-w-[1000px] w-full mx-auto'>
+				<ProfileBoard
+					isAi={gameMode === 'AI'}
+					userIds={gameState.userIds}
+					userSymbols={gameState.userSymbols}
+				/>
+				<GameBoard board={gameState.board} onClick={handleCellClick} />
+			</div>
 			{gameState.gameStatus === 'completed' && (
 				<Button
 					onClick={startNewGame}

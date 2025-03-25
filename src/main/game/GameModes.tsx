@@ -93,13 +93,15 @@ export function GameModes() {
 
 				<div className='p-4 bg-green-100 rounded-lg shadow-md text-center col-span-2'>
 					<Gamepad2 className='mx-auto text-purple-700 mb-2' size={32} />
-					<h3 className='text-xl font-semibold text-purple-800'>2v2 Mode</h3>
+					<h3 className='text-xl font-semibold text-purple-800'>
+						1v1v1v1 Mode
+					</h3>
 					<p className='text-purple-600'>New shapes: ✖️⭕ 🔳 🔺!</p>
 					<Button
 						className='mt-4 bg-purple-600 hover:bg-purple-600/90'
 						variant='costume'
 						size='lg'
-						onClick={() => startGame('2v2')}
+						onClick={() => startGame('1v1v1v1')}
 					>
 						Start 2v2
 					</Button>

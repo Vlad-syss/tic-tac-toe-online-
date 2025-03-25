@@ -1,5 +1,6 @@
 // GameBoard.tsx
 
+import { Circle, Square, Triangle, X } from 'lucide-react'
 import { Cell } from '../../types'
 
 interface GameBoardProps {
@@ -29,7 +30,18 @@ export const GameBoard = ({ board, onClick }: GameBoardProps) => {
                         '
 						onClick={() => onClick(rowIndex, colIndex)}
 					>
-						{cell.symbol}
+						{cell.symbol === 'O' && (
+							<Circle className='w-9 h-9  text-blue-500' />
+						)}
+						{cell.symbol === 'Square' && (
+							<Square className='w-9 h-9  text-purple-500' />
+						)}
+						{cell.symbol === 'Triangle' && (
+							<Triangle className='w-9 h-9  text-orange-500' />
+						)}
+						{cell.symbol === 'X' && (
+							<X className='w-9 h-9  rounded-full text-red-500' />
+						)}
 					</button>
 				))
 			)}
