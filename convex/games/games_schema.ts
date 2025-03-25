@@ -10,7 +10,7 @@ export const gamesSchema = defineTable({
 		v.literal('completed'),
 		v.literal('canceled')
 	),
-	gameMode: v.union(v.literal('AI'), v.literal('Online'), v.literal('2v2')),
+	gameMode: v.union(v.literal('AI'), v.literal('Online'), v.literal('1v1v1v1')),
 	fieldSize: v.number(),
 	isDraw: v.boolean(),
 	createdAt: v.string(),
@@ -31,6 +31,15 @@ export const gamesSchema = defineTable({
 					v.literal('')
 				),
 			})
+		)
+	),
+	userSymbols: v.record(
+		v.id('users'),
+		v.union(
+			v.literal('X'),
+			v.literal('O'),
+			v.literal('Square'),
+			v.literal('Triangle')
 		)
 	),
 })

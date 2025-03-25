@@ -5,7 +5,11 @@ import { mutation, query } from '../_generated/server'
 export const startNewGame = mutation({
 	args: {
 		userIds: v.array(v.id('users')),
-		gameMode: v.union(v.literal('AI'), v.literal('Online'), v.literal('2v2')),
+		gameMode: v.union(
+			v.literal('AI'),
+			v.literal('Online'),
+			v.literal('1v1v1v1')
+		),
 		fieldSize: v.number(),
 		firstPlayerId: v.optional(v.id('users')),
 	},
@@ -24,6 +28,18 @@ export const startNewGame = mutation({
 
 		const startingPlayerId = firstPlayerId || userIds[0]
 
+		const userSymbols: Record<string, 'X' | 'O' | 'Square' | 'Triangle'> = {}
+		const symbols: ('X' | 'O' | 'Square' | 'Triangle')[] = [
+			'X',
+			'O',
+			'Square',
+			'Triangle',
+		]
+
+		userIds.forEach((userId, index) => {
+			userSymbols[userId] = symbols[index % symbols.length]
+		})
+
 		const game = await ctx.db.insert('games', {
 			userIds,
 			gameStatus: 'waiting',
@@ -34,6 +50,7 @@ export const startNewGame = mutation({
 			updatedAt,
 			board,
 			currentTurn: startingPlayerId,
+			userSymbols,
 		})
 
 		return game
