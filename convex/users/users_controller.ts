@@ -65,6 +65,28 @@ export const getUser = query({
 	},
 })
 
+export const getUserById = query({
+	args: {
+		userId: v.id('users'),
+	},
+	handler: async (ctx, args) => {
+		if (args.userId === undefined) {
+			return null
+		}
+
+		const users = await ctx.db
+			.query('users')
+			.filter(q => q.eq(q.field('_id'), args.userId))
+			.collect()
+
+		if (users.length === 0) {
+			return null
+		}
+
+		return users[0]
+	},
+})
+
 export const updateUser = mutation({
 	args: { name: v.optional(v.string()), avatarUrl: v.optional(v.string()) },
 	handler: async (ctx, args) => {
