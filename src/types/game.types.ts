@@ -6,7 +6,7 @@ export type GameUser = {
 }
 
 export type SymbolType = 'X' | 'O' | 'Square' | 'Triangle'
-export type GameMode = 'AI' | 'Online' | '2v2'
+export type GameMode = 'AI' | 'Online' | '1v1v1v1'
 export type GameStatus = 'waiting' | 'in_progress' | 'completed' | 'canceled'
 
 export interface Move {
@@ -41,7 +41,8 @@ export interface GameState {
 	createdAt: string
 	updatedAt: string
 	fieldSize: number
-	players: Player[] // Add this line
+	players: Player[]
+	userSymbols: Record<string, SymbolType>
 }
 
 export interface TicTacToeGame {

@@ -7,7 +7,7 @@ import {
 	ProfilePage,
 } from './pages'
 import { Login } from './pages/_components'
-import { AIGame, OnlineGame, TwovTwoGame } from './pages/game'
+import { AIGame, OnevOnevOnevOneGame, OnlineGame } from './pages/game'
 
 export const AppRoutes = () => (
 	<Routes>
@@ -18,7 +18,7 @@ export const AppRoutes = () => (
 			<Route path='/game' element={<GamePage />}>
 				<Route path='ai' element={<AIGame />} />
 				<Route path='online' element={<OnlineGame />} />
-				<Route path='2v2' element={<TwovTwoGame />} />
+				<Route path='1v1v1v1' element={<OnevOnevOnevOneGame />} />
 			</Route>
 		</Route>
 
