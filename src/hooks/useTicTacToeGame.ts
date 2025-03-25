@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Id } from '../../convex/_generated/dataModel'
 import { useGame, useUser } from '../hooks'
@@ -8,7 +8,7 @@ interface UseTicTacToeGameProps {
 	gameId: Id<'games'> | null
 	setGameId: (gameId: Id<'games'> | null) => void
 	fieldSize: number
-	gameMode: 'AI' | 'Online' | '2v2' // Use the same type as in your mutation
+	gameMode: 'AI' | 'Online' | '1v1v1v1'
 }
 
 export const useTicTacToeGame = ({
@@ -31,6 +31,8 @@ export const useTicTacToeGame = ({
 		makeMoves: makeMoveMutation,
 	} = useGame(gameId)
 
+	const aiMoveRef = useRef(false)
+
 	const startNewGameHandler = useCallback(async () => {
 		if (!user?._id || isCreatingGame || gameMode !== 'AI') return null
 
@@ -39,13 +41,20 @@ export const useTicTacToeGame = ({
 			setGameState(null)
 			setGameId(null)
 
-			const newGameId = await startGameWithAI(user._id, fieldSize)
+			const newGame = await startGameWithAI(user._id, fieldSize)
 
-			setGameId(newGameId)
-			toast.success('New game started!', {
-				style: { background: '#4CAF50', color: '#fff' },
-			})
-			return newGameId
+			if (newGame && newGame._id) {
+				setGameId(newGame._id)
+				toast.success('New game started!', {
+					style: { background: '#4CAF50', color: '#fff' },
+				})
+				return newGame._id
+			} else {
+				toast.error('Failed to start new game (game ID not found).', {
+					style: { background: '#f44336', color: '#fff' },
+				})
+				return null
+			}
 		} catch (error) {
 			console.error('Error starting new game:', error)
 			toast.error('Failed to start new game.', {
@@ -76,6 +85,7 @@ export const useTicTacToeGame = ({
 
 	useEffect(() => {
 		if (getGame) {
+			aiMoveRef.current = false
 			const board2D: Cell[][] = getGame.board.map(row =>
 				row.map(cell => ({
 					row: cell.row,
@@ -87,7 +97,8 @@ export const useTicTacToeGame = ({
 			const currentPlayerIndex =
 				getGame.board.flat().filter(cell => cell.symbol !== '').length % 2
 
-			setGameState({
+			setGameState(prevState => ({
+				...prevState,
 				board: board2D,
 				userIds: getGame.userIds,
 				currentPlayerIndex,
@@ -99,7 +110,8 @@ export const useTicTacToeGame = ({
 				updatedAt: getGame.updatedAt,
 				fieldSize: getGame.fieldSize,
 				players: getGame.userIds.map(id => ({ user: { _id: id } })),
-			})
+				userSymbols: getGame.userSymbols,
+			}))
 		}
 	}, [getGame])
 
@@ -109,11 +121,14 @@ export const useTicTacToeGame = ({
 			gameState.currentPlayerIndex === 1 &&
 			gameState.gameStatus === 'in_progress' &&
 			gameId &&
-			gameMode === 'AI'
+			gameMode === 'AI' &&
+			!aiMoveRef.current
 		) {
 			const aiUserId = gameState.userIds[1]
 
 			if (!aiUserId) return
+
+			aiMoveRef.current = true
 
 			aiMakeMove({
 				gameId: gameId,
@@ -121,14 +136,6 @@ export const useTicTacToeGame = ({
 			})
 		}
 	}, [gameState, aiMakeMove, gameId, gameMode])
-
-	useEffect(() => {
-		return () => {
-			if (gameId && gameState?.userIds[1] && gameMode === 'AI') {
-				deleteAi({ aiUserId: gameState.userIds[1] })
-			}
-		}
-	}, [gameId, gameState, deleteAi, gameMode])
 
 	const handleCellClick = (row: number, col: number) => {
 		if (
