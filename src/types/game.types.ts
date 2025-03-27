@@ -11,11 +11,10 @@ export type GameStatus = 'waiting' | 'in_progress' | 'completed' | 'canceled'
 
 export interface Move {
 	gameId: Id<'games'>
-	playerId: string
+	// playerId: string
 	row: number
 	col: number
 	symbol: SymbolType
-	createdAt: string
 }
 
 export interface Cell {
