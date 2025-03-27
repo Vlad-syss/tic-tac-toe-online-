@@ -197,7 +197,7 @@ export const makeMove = mutation({
 			throw new Error('This cell is already occupied')
 		}
 
-		const createdAt = new Date().toISOString()
+		// const createdAt = new Date().toISOString()
 		const newBoard = game.board.map((rowArr, rowIndex) =>
 			rowArr.map((cell, colIndex) =>
 				rowIndex === row && colIndex === col ? { ...cell, symbol } : cell
@@ -209,7 +209,7 @@ export const makeMove = mutation({
 
 		const updates: Partial<Doc<'games'>> = {
 			board: newBoard,
-			updatedAt: createdAt,
+			updatedAt: new Date().toISOString(),
 		}
 
 		if (game.gameStatus === 'waiting') {
