@@ -3,15 +3,24 @@ import { Computer, Gamepad2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
-import { useUser } from '../../hooks'
+import { useGameApi, useUser } from '../../hooks'
 
-export function GameModes() {
+export const GameModes = () => {
 	const { user } = useUser()
 	const navigate = useNavigate()
 	const [boardSize, setBoardSize] = useState(3)
+	const { startGameWithAI } = useGameApi(null)
 
-	const startGame = (mode: string) => {
-		navigate(`/game/${mode}?size=${boardSize}`)
+	const startGame = async (mode: string) => {
+		if (user === undefined) return
+		if (mode === 'ai') {
+			const newGame = await startGameWithAI(user?._id, boardSize)
+			if (newGame) {
+				navigate(`/game/${mode}?size=${boardSize}&gameId=${newGame._id}`)
+			}
+		} else {
+			navigate(`/game/${mode}?size=${boardSize}`)
+		}
 	}
 
 	return (

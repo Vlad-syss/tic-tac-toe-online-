@@ -1,9 +1,16 @@
-import { useState } from 'react'
+import { LoaderCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { useSearchParams } from 'react-router'
 import { Id } from '../../../convex/_generated/dataModel'
 import { Button } from '../../components/Button'
-import { useGameStatus, useTicTacToeGame } from '../../hooks'
+import {
+	useAIGame,
+	useFourPlayerGame,
+	useOnlineGame,
+	useUser,
+} from '../../hooks'
+import { useGameStatus } from '../../hooks/useGameStatus'
 import { GameBoard, ProfileBoard } from '../../main/game'
 
 interface TicTacToeGameComponentProps {
@@ -17,9 +24,26 @@ export const TicTacToeGameComponent = ({
 	const [searchParams] = useSearchParams()
 	const size = searchParams.get('size')
 	const fieldSize = size ? parseInt(size, 10) : 3
+	const { user } = useUser()
 
-	const { gameState, isLoading, startNewGame, handleCellClick, checkWinner } =
-		useTicTacToeGame({ gameId, setGameId, fieldSize, gameMode })
+	let gameHook
+
+	switch (gameMode) {
+		case 'AI':
+			gameHook = useAIGame(gameId, fieldSize)
+			break
+		case 'Online':
+			gameHook = useOnlineGame(gameId, fieldSize)
+			break
+		case '1v1v1v1':
+			gameHook = useFourPlayerGame(gameId, fieldSize)
+			break
+		default:
+			return <div>Invalid game mode</div>
+	}
+
+	const { gameState, isLoading, startGame, handleCellClick, checkWinner } =
+		gameHook
 
 	const statusMessage = useGameStatus({
 		gameState,
@@ -27,8 +51,27 @@ export const TicTacToeGameComponent = ({
 		isAI: gameMode === 'AI',
 	})
 
+	useEffect(() => {
+		// Check if gameId is in URL params
+		const urlGameId = searchParams.get('gameId') as Id<'games'> | null
+		if (urlGameId) {
+			setGameId(urlGameId)
+		}
+	}, [searchParams])
+
+	const handleCellClickWrapper = (row: number, col: number) => {
+		handleCellClick(row, col)
+	}
+
+	const startNewGameWrapper = async () => {
+		if (gameMode === 'AI' && user && user._id) {
+			await startGame(user._id)
+		} else {
+		}
+	}
+
 	if (isLoading || !gameState) {
-		return <div>Loading...</div>
+		return <LoaderCircle className='animate-spin w-10 h-10' />
 	}
 
 	return (
@@ -40,7 +83,7 @@ export const TicTacToeGameComponent = ({
 					? 'vs AI'
 					: gameMode === 'Online'
 						? 'Online Game'
-						: '2v2 Game'}
+						: '1v1v1v1 Game'}
 			</h2>
 			<div className='text-xl mb-4 text-green-700'>{statusMessage}</div>
 			<div className='max-w-[1000px] w-full mx-auto'>
@@ -49,11 +92,11 @@ export const TicTacToeGameComponent = ({
 					userIds={gameState.userIds}
 					userSymbols={gameState.userSymbols}
 				/>
-				<GameBoard board={gameState.board} onClick={handleCellClick} />
+				<GameBoard board={gameState.board} onClick={handleCellClickWrapper} />
 			</div>
 			{gameState.gameStatus === 'completed' && (
 				<Button
-					onClick={startNewGame}
+					onClick={startNewGameWrapper}
 					disabled={isLoading}
 					className='mt-6 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded'
 				>

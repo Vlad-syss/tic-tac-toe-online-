@@ -29,11 +29,11 @@ export const ProfileBoard: FC<ProfileBoardProps> = ({
 								isReverse ? 'flex-row' : 'flex-row-reverse'
 							)}
 						>
-							<div className='flex flex-col items-center justify-center w-24 h-12 pt-2 pb-1 border-2 border-emerald-400 rounded-lg shadow-lime-200/40 text-lg font-semibold text-green-700'>
-								<h3 className='text-sm text-gray-600 mr-2'>⏳ Timer:</h3>
-								<span className='text-green-700 font-bold'>01:00</span>
+							<div className='flex flex-col items-center justify-center w-24 h-12 pt-2 pb-1 border-2 border-emerald-400 rounded-lg shadow-lime-200/40 text-lg font-semibold text-green-700 select-none'>
+								<h3 className='text-xs text-gray-600 mr-2'>⏳ Timer:</h3>
+								<span className='text-green-700 font-bold text'>01:00</span>
 							</div>
-							<div className='text-2xl text-emerald-800'>|</div>
+							<div className='text-2xl text-emerald-800 select-none'>|</div>
 							<Profile
 								userId={userId}
 								isGame={true}
