@@ -59,8 +59,8 @@ export const TicTacToeGameComponent = ({
 		}
 	}, [searchParams])
 
-	const handleCellClickWrapper = (row: number, col: number) => {
-		handleCellClick(row, col)
+	const handleCellClickWrapper = (r: number, c: number) => {
+		handleCellClick(r, c)
 	}
 
 	const startNewGameWrapper = async () => {
