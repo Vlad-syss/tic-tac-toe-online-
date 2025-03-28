@@ -33,7 +33,7 @@ export const ProfileBoard: FC<ProfileBoardProps> = ({
 								<h3 className='text-xs text-gray-600 mr-2'>⏳ Timer:</h3>
 								<span className='text-green-700 font-bold text'>01:00</span>
 							</div>
-							<div className='text-2xl text-emerald-800 select-none'>|</div>
+							<div className='text-3xl text-emerald-800 select-none'>|</div>
 							<Profile
 								userId={userId}
 								isGame={true}
