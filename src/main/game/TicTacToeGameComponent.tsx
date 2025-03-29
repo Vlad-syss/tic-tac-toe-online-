@@ -42,8 +42,14 @@ export const TicTacToeGameComponent = ({
 			return <div>Invalid game mode</div>
 	}
 
-	const { gameState, isLoading, startGame, handleCellClick, checkWinner } =
-		gameHook
+	const {
+		gameState,
+		isLoading,
+		startGame,
+		handleCellClick,
+		checkWinner,
+		timeLeft,
+	} = gameHook
 
 	const statusMessage = useGameStatus({
 		gameState,
@@ -52,7 +58,6 @@ export const TicTacToeGameComponent = ({
 	})
 
 	useEffect(() => {
-		// Check if gameId is in URL params
 		const urlGameId = searchParams.get('gameId') as Id<'games'> | null
 		if (urlGameId) {
 			setGameId(urlGameId)
@@ -70,8 +75,12 @@ export const TicTacToeGameComponent = ({
 		}
 	}
 
-	if (isLoading || !gameState) {
+	if (isLoading) {
 		return <LoaderCircle className='animate-spin w-10 h-10' />
+	}
+
+	if (!gameState) {
+		return <p>Game is not found!</p>
 	}
 
 	return (
@@ -91,6 +100,8 @@ export const TicTacToeGameComponent = ({
 					isAi={gameMode === 'AI'}
 					userIds={gameState.userIds}
 					userSymbols={gameState.userSymbols}
+					timeLeft={timeLeft}
+					currentPlayerIndex={gameState.currentPlayerIndex}
 				/>
 				<GameBoard board={gameState.board} onClick={handleCellClickWrapper} />
 			</div>
