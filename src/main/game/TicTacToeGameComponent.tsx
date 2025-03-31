@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { useSearchParams } from 'react-router'
 import { Id } from '../../../convex/_generated/dataModel'
 import { Button } from '../../components/Button'
+import { Container } from '../../components/Container'
 import {
 	useAIGame,
 	useFourPlayerGame,
@@ -95,7 +96,7 @@ export const TicTacToeGameComponent = ({
 						: '1v1v1v1 Game'}
 			</h2>
 			<div className='text-xl mb-4 text-green-700'>{statusMessage}</div>
-			<div className='max-w-[1000px] w-full mx-auto'>
+			<Container>
 				<ProfileBoard
 					isAi={gameMode === 'AI'}
 					userIds={gameState.userIds}
@@ -104,7 +105,7 @@ export const TicTacToeGameComponent = ({
 					currentPlayerIndex={gameState.currentPlayerIndex}
 				/>
 				<GameBoard board={gameState.board} onClick={handleCellClickWrapper} />
-			</div>
+			</Container>
 			{gameState.gameStatus === 'completed' && (
 				<Button
 					onClick={startNewGameWrapper}
