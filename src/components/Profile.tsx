@@ -81,16 +81,16 @@ export const Profile = ({
 							)}
 						>
 							{userSymbol === 'O' && (
-								<Circle className='w-5 h-5 bg-white p-1 rounded-full text-blue-500' />
+								<Circle className='w-5 h-5 bg-white p-[3px] rounded-full text-blue-500' />
 							)}
 							{userSymbol === 'Square' && (
-								<Square className='w-5 h-5 bg-white p-1 rounded-full text-purple-500' />
+								<Square className='w-5 h-5 bg-white p-[3px] rounded-full text-purple-500' />
 							)}
 							{userSymbol === 'Triangle' && (
-								<Triangle className='w-5 h-5 bg-white p-1 rounded-full text-orange-500' />
+								<Triangle className='w-5 h-5 bg-white p-[3px] rounded-full text-orange-500' />
 							)}
 							{userSymbol === 'X' && (
-								<X className='w-5 h-5 bg-white p-1 rounded-full text-red-500' />
+								<X className='w-5 h-5 bg-white p-[3px] rounded-full text-red-500' />
 							)}
 						</div>
 					)}
