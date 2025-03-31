@@ -18,7 +18,7 @@ export function Leaderboard() {
 					size='lg'
 					onClick={() => navigate('/leaderboard/ai')}
 				>
-					AI Rankings
+					AI Ratings
 				</Button>
 				<Button
 					className='w-full bg-yellow-600 text-yellow-800 hover:bg-yellow-600/80'
@@ -26,7 +26,7 @@ export function Leaderboard() {
 					size='lg'
 					onClick={() => navigate('/leaderboard/online')}
 				>
-					Online Rankings
+					Online Ratings
 				</Button>
 			</div>
 		</div>
