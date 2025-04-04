@@ -112,7 +112,7 @@ export const GameModes = () => {
 						size='lg'
 						onClick={() => startGame('1v1v1v1')}
 					>
-						Start 2v2
+						Start 4 players
 					</Button>
 				</div>
 			</div>
