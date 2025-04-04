@@ -95,7 +95,7 @@ export const TicTacToeGameComponent = ({
 						? 'Online Game'
 						: '1v1v1v1 Game'}
 			</h2>
-			<div className='text-xl mb-4 text-green-700'>{statusMessage}</div>
+			<div className='text-xl mb-4 text-green-700'>Status: {statusMessage}</div>
 			<Container>
 				<ProfileBoard
 					isAi={gameMode === 'AI'}

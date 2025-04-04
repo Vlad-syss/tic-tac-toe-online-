@@ -8,7 +8,7 @@ interface GameBoardProps {
 }
 
 const SYMBOL_COMPONENTS: Record<string, JSX.Element> = {
-	O: <Circle className='w-10 h-10 text-blue-500 drop-shadow-lg' />,
+	O: <Circle className='w-10 h-10 text-blue-600 drop-shadow-lg' />,
 	Square: <Square className='w-10 h-10 text-purple-500 drop-shadow-lg' />,
 	Triangle: <Triangle className='w-10 h-10 text-orange-500 drop-shadow-lg' />,
 	X: <X className='w-10 h-10 text-red-500 drop-shadow-lg' />,
