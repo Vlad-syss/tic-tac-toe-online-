@@ -110,7 +110,7 @@ export const TicTacToeGameComponent = ({
 				<Button
 					onClick={startNewGameWrapper}
 					disabled={isLoading}
-					className='mt-6 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded'
+					className='mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded'
 				>
 					{isLoading ? 'Starting...' : 'Start New Game'}
 				</Button>
