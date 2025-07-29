@@ -35,6 +35,11 @@ export const generateAIMove = action({
 	},
 	handler: async (ctx, { board, fieldSize, gameId, playerId }) => {
 		try {
+			const game = await ctx.runQuery(api.games.games_controller.getGame, {
+				gameId,
+			})
+			if (!game) throw new Error('there is no game')
+
 			const boardString = board
 				.map(row => row.map(cell => cell.symbol || ' ').join('|'))
 				.join('\n')
@@ -96,10 +101,15 @@ export const generateAIMove = action({
 				move = emptyCells[Math.floor(Math.random() * emptyCells.length)]
 			}
 
+			const playerIndex = game.userIds.indexOf(playerId)
+			const symbol = game.userSymbols[game.userIds[playerIndex]]
+
 			await ctx.runMutation(api.ai.ai_controller.recordAIMove, {
 				gameId,
 				row: move.row,
 				col: move.col,
+				symbol,
+				playerId,
 			})
 
 			return move

@@ -28,7 +28,6 @@ export const TicTacToeGameComponent = ({
 	const { user } = useUser()
 
 	let gameHook
-
 	switch (gameMode) {
 		case 'AI':
 			gameHook = useAIGame(gameId, fieldSize)

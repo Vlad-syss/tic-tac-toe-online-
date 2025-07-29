@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import { api } from '../_generated/api'
 import { Doc, Id } from '../_generated/dataModel'
 import { mutation, query } from '../_generated/server'
 
@@ -63,7 +64,10 @@ export const getGame = query({
 	},
 	handler: async (ctx, { gameId }) => {
 		if (!gameId) return null
-		return await ctx.db.get(gameId)
+		const game = await ctx.db.get(gameId)
+		if (!game) throw new Error('no game')
+		// console.log(game)
+		return game
 	},
 })
 
@@ -113,7 +117,7 @@ export const updateGameStatus = mutation({
 })
 
 // moves for game
-const checkWinCondition = (
+export const checkWinCondition = (
 	board: {
 		symbol: 'X' | 'O' | 'Square' | 'Triangle' | ''
 		row: number
@@ -140,7 +144,7 @@ const checkWinCondition = (
 	return false
 }
 
-const isBoardFull = (
+export const isBoardFull = (
 	board: {
 		symbol: 'X' | 'O' | 'Square' | 'Triangle' | ''
 		row: number
@@ -162,7 +166,7 @@ export const makeMove = mutation({
 			v.literal('Triangle')
 		),
 	},
-	handler: async (ctx, { gameId, row, col, symbol }) => {
+	handler: async (ctx, { gameId, row, col }) => {
 		const identity = await ctx.auth.getUserIdentity()
 		if (!identity) throw new Error('Not authenticated')
 
@@ -197,7 +201,9 @@ export const makeMove = mutation({
 			throw new Error('This cell is already occupied')
 		}
 
-		// const createdAt = new Date().toISOString()
+		const symbol = game.userSymbols[playerId]
+		if (!symbol) throw new Error('Player symbol not found')
+
 		const newBoard = game.board.map((rowArr, rowIndex) =>
 			rowArr.map((cell, colIndex) =>
 				rowIndex === row && colIndex === col ? { ...cell, symbol } : cell
@@ -242,7 +248,26 @@ export const makeMove = mutation({
 			})
 		}
 
-		return { success: true, isWin, isDraw }
+		// Trigger AI move if needed
+		if (
+			!isWin &&
+			!isDraw &&
+			game.gameMode === 'AI' &&
+			updates.currentTurn === game.userIds[1]
+		) {
+			await ctx.scheduler.runAfter(1000, api.ai.ai_controller.aiMakeMove, {
+				gameId,
+				playerId: updates.currentTurn,
+			})
+		}
+
+		return {
+			success: true,
+			isWin,
+			isDraw,
+			nextTurn: updates.currentTurn,
+			gameStatus: updates.gameStatus,
+		}
 	},
 })
 

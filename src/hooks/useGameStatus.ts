@@ -14,6 +14,7 @@ export const useGameStatus = ({
 	isAI,
 }: UseGameStatusProps) => {
 	const [statusMessage, setStatusMessage] = useState('')
+	console.log(gameState)
 
 	useEffect(() => {
 		if (!gameState) return

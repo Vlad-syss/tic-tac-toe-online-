@@ -11,7 +11,6 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 		gameId ? { gameId } : 'skip'
 	)
 	const makeMoves = useMutation(api.games.games_controller.makeMove)
-	const aiMakeMove = useMutation(api.ai.ai_controller.aiMakeMove)
 	const deleteAi = useMutation(api.ai.ai_controller.deleteAIUser)
 
 	const [mutationLoading, setMutationLoading] = useState(false)
@@ -28,13 +27,6 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 		await makeMoves(move)
 		setMutationLoading(false)
 	}
-
-	const aiMove = async (move: any) => {
-		setMutationLoading(true)
-		await aiMakeMove(move)
-		setMutationLoading(false)
-	}
-
 	const deleteAI = async (ai: any) => {
 		setMutationLoading(true)
 		await deleteAi(ai)
@@ -50,7 +42,6 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 	return {
 		createGameWithAI,
 		getGame,
-		aiMove,
 		deleteAI,
 		startGameWithAI,
 		makeMove,

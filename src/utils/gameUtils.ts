@@ -18,8 +18,12 @@ export const createGameState = (
 		}))
 	)
 
-	const currentPlayerIndex =
-		getGame.board.flat().filter(cell => cell.symbol !== '').length % 2
+	const usersIds = getGame.userIds
+	let currentPlayerIndex: number = -1
+
+	if (getGame.currentTurn !== undefined) {
+		currentPlayerIndex = usersIds.indexOf(getGame.currentTurn)
+	}
 
 	return {
 		board: board2D,
