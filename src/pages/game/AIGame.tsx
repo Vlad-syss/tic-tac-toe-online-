@@ -3,11 +3,13 @@ import { TicTacToeGameComponent } from '../../main/game/'
 export const AIGame = () => {
 	/**
 	 * Tasks:
-	 * save game after refresh
 	 * design ui for games
-	 * fix ai first move
 	 * refactor useTicTacToe make for each mode different hook i guess
 	 * add libraly for refetch if ai response dont appear
+	 * 
+	 * timer for ai 
+	 * skip move for ai 
+	 * maybe refactor to rooms even for ai
 	 */
 	return <TicTacToeGameComponent gameMode='AI' />
 }

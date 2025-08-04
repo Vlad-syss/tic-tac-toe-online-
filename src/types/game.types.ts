@@ -7,7 +7,12 @@ export type GameUser = {
 
 export type SymbolType = 'X' | 'O' | 'Square' | 'Triangle'
 export type GameMode = 'AI' | 'Online' | '1v1v1v1'
-export type GameStatus = 'waiting' | 'in_progress' | 'completed' | 'canceled'
+export type GameStatus =
+	| 'waiting'
+	| 'in_progress'
+	| 'completed'
+	| 'canceled'
+	| 'lost'
 
 export interface Move {
 	gameId: Id<'games'>
@@ -32,13 +37,14 @@ export interface Player {
 export interface GameState {
 	board: Cell[][]
 	userIds: Id<'users'>[]
-	currentPlayerIndex: number
+	currentTurn: Id<'users'> | undefined
 	gameMode: GameMode
 	gameStatus: GameStatus
 	winner?: Id<'users'> | null
 	isDraw: boolean
 	createdAt: string
 	updatedAt: string
+	moveMadeAt: string
 	fieldSize: number
 	players: Player[]
 	userSymbols: Record<string, SymbolType>

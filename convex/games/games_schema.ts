@@ -8,7 +8,8 @@ export const gamesSchema = defineTable({
 		v.literal('waiting'),
 		v.literal('in_progress'),
 		v.literal('completed'),
-		v.literal('canceled')
+		v.literal('canceled'),
+		v.literal('lost')
 	),
 	gameMode: v.union(v.literal('AI'), v.literal('Online'), v.literal('1v1v1v1')),
 	fieldSize: v.number(),
@@ -42,6 +43,7 @@ export const gamesSchema = defineTable({
 			v.literal('Triangle')
 		)
 	),
+	moveMadeAt: v.string(),
 })
 	.index('by_status', ['gameStatus'])
 	.index('by_invite_code', ['inviteCode'])

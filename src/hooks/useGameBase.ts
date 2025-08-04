@@ -18,13 +18,10 @@ export const useGameBase = (gameId: Id<'games'> | null) => {
 				}))
 			)
 
-			const currentPlayerIndex =
-				getGame.board.flat().filter(cell => cell.symbol !== '').length % 2
-
 			setGameState({
 				board: board2D,
 				userIds: getGame.userIds,
-				currentPlayerIndex,
+				currentTurn: getGame?.currentTurn,
 				gameMode: getGame.gameMode,
 				gameStatus: getGame.gameStatus,
 				winner: getGame.winnerId,
@@ -34,6 +31,7 @@ export const useGameBase = (gameId: Id<'games'> | null) => {
 				fieldSize: getGame.fieldSize,
 				players: getGame.userIds.map(id => ({ user: { _id: id } })),
 				userSymbols: getGame.userSymbols,
+				moveMadeAt: getGame.moveMadeAt,
 			})
 		}
 	}, [getGame])

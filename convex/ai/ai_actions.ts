@@ -33,7 +33,36 @@ export const generateAIMove = action({
 		gameId: v.id('games'),
 		playerId: v.id('users'),
 	},
+
 	handler: async (ctx, { board, fieldSize, gameId, playerId }) => {
+		// Типізована retry-функція
+		async function tryGenerateAIMove(
+			prompt: string,
+			retries = 3,
+			delayMs = 1000
+		): Promise<string> {
+			for (let attempt = 1; attempt <= retries; attempt++) {
+				try {
+					const result = await model.generateContent(prompt)
+					return result.response.text()
+				} catch (error: unknown) {
+					console.error(`AI generation attempt ${attempt} failed:`, error)
+
+					if (attempt === retries) {
+						throw error
+					}
+
+					const err = error as any
+					if (err.status === 503 || err.statusText === 'Service Unavailable') {
+						await new Promise(resolve => setTimeout(resolve, delayMs))
+					} else {
+						throw error
+					}
+				}
+			}
+			throw new Error('Unhandled AI error') // теоретично недосяжно
+		}
+
 		try {
 			const game = await ctx.runQuery(api.games.games_controller.getGame, {
 				gameId,
@@ -45,22 +74,21 @@ export const generateAIMove = action({
 				.join('\n')
 
 			const prompt = `
-					You are playing a tic-tac-toe game on a ${fieldSize}x${fieldSize} board.
-					You are playing as 'O' and your opponent is 'X'.
-					Current board state:
-					${boardString}
+You are playing a tic-tac-toe game on a ${fieldSize}x${fieldSize} board.
+You are playing as 'O' and your opponent is 'X'.
+Current board state:
+${boardString}
 
-					Analyze the board and provide the best move as a JSON object with row and column indices (0-based).
-					Only return the JSON object in this format: {"row": number, "col": number}
-					Make sure the move is valid (the cell is empty).
-					`
+Analyze the board and provide the best move as a JSON object with row and column indices (0-based).
+Only return the JSON object in this format: {"row": number, "col": number}
+Make sure the move is valid (the cell is empty).
+`
 
-			const result = await model.generateContent(prompt)
-			const response = result.response.text()
+			const response = await tryGenerateAIMove(prompt)
 
 			let move
 			try {
-				const jsonMatch = response.match(/\{[\s\S]*?\}/) // More aggressive match
+				const jsonMatch = response?.match(/\{[\s\S]*?\}/)
 				if (jsonMatch) {
 					move = JSON.parse(jsonMatch[0])
 				} else {
@@ -82,10 +110,8 @@ export const generateAIMove = action({
 				throw new Error('AI returned invalid move coordinates')
 			}
 
-			// Check if the cell is already occupied
 			if (board[move.row][move.col].symbol !== '') {
-				// Find a random empty cell as fallback
-				const emptyCells = []
+				const emptyCells: { row: number; col: number }[] = []
 				for (let r = 0; r < fieldSize; r++) {
 					for (let c = 0; c < fieldSize; c++) {
 						if (board[r][c].symbol === '') {

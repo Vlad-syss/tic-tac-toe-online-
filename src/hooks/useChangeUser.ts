@@ -4,7 +4,7 @@ import { api } from '../../convex/_generated/api'
 
 export const useChangeUser = () => {
 	const [isLoading, setIsLoading] = useState(false)
-	const updateUser = useMutation(api.users.updateUser)
+	const updateUser = useMutation(api.users.users_controller.updateUser)
 
 	const changeUser = async (args: { name?: string; avatarUrl?: string }) => {
 		setIsLoading(true)

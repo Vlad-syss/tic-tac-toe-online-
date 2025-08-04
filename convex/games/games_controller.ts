@@ -18,6 +18,7 @@ export const startNewGame = mutation({
 		console.log('Creating game with users:', userIds)
 		const createdAt = new Date().toISOString()
 		const updatedAt = createdAt
+		const firstMoveAt = new Date().toISOString()
 
 		const board = Array.from({ length: fieldSize }, () =>
 			Array.from({ length: fieldSize }, () => ({
@@ -52,6 +53,7 @@ export const startNewGame = mutation({
 			board,
 			currentTurn: startingPlayerId,
 			userSymbols,
+			moveMadeAt: firstMoveAt,
 		})
 
 		return game
@@ -216,6 +218,7 @@ export const makeMove = mutation({
 		const updates: Partial<Doc<'games'>> = {
 			board: newBoard,
 			updatedAt: new Date().toISOString(),
+			moveMadeAt: new Date().toISOString(),
 		}
 
 		if (game.gameStatus === 'waiting') {
@@ -267,6 +270,7 @@ export const makeMove = mutation({
 			isDraw,
 			nextTurn: updates.currentTurn,
 			gameStatus: updates.gameStatus,
+			moveMadeAt: updates.moveMadeAt,
 		}
 	},
 })
@@ -310,5 +314,59 @@ export const getCurrentBoardState = query({
 			isDraw: game.isDraw,
 			winnerId: game.winnerId,
 		}
+	},
+})
+
+export const skipMove = mutation({
+	args: {
+		gameId: v.id('games'),
+	},
+	handler: async (ctx, { gameId }) => {
+		const identity = await ctx.auth.getUserIdentity()
+		if (!identity) throw new Error('Not authenticated')
+
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_email', q => q.eq('email', identity.email))
+			.unique()
+
+		if (!user) throw new Error('User not found')
+		const playerId = user._id
+
+		// 2. Fetch the game
+		const game = await ctx.db.get(gameId)
+		if (!game) throw new Error('Game not found')
+
+		// 3. Validate game state and turn
+		if (game.gameStatus !== 'in_progress') {
+			throw new Error('Game is not in progress')
+		}
+
+		if (game.currentTurn !== playerId) {
+			throw new Error('It is not your turn to skip')
+		}
+
+		// 4. Update the game state to skip the turn
+		const playerIndex = game.userIds.indexOf(playerId)
+		const nextPlayerIndex = (playerIndex + 1) % game.userIds.length
+		const nextPlayerId = game.userIds[nextPlayerIndex]
+
+		const updates: Partial<Doc<'games'>> = {
+			currentTurn: nextPlayerId as Id<'users'>,
+			updatedAt: new Date().toISOString(),
+			moveMadeAt: new Date().toISOString(), // This is crucial to reset the timer
+		}
+
+		await ctx.db.patch(gameId, updates)
+
+		// 5. Trigger AI move if the next player is an AI
+		if (game.gameMode === 'AI' && nextPlayerId === game.userIds[1]) {
+			await ctx.scheduler.runAfter(1000, api.ai.ai_controller.aiMakeMove, {
+				gameId,
+				playerId: nextPlayerId,
+			})
+		}
+
+		return { success: true, nextTurn: nextPlayerId }
 	},
 })

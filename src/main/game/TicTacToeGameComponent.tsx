@@ -1,18 +1,20 @@
 import { LoaderCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Toaster } from 'react-hot-toast'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { Id } from '../../../convex/_generated/dataModel'
 import { Button } from '../../components/Button'
 import { Container } from '../../components/Container'
 import {
 	useAIGame,
 	useFourPlayerGame,
+	useGameApi,
 	useOnlineGame,
 	useUser,
 } from '../../hooks'
 import { useGameStatus } from '../../hooks/useGameStatus'
 import { GameBoard, ProfileBoard } from '../../main/game'
+import { startGame } from '../../utils/gameUtils'
 
 interface TicTacToeGameComponentProps {
 	gameMode: 'AI' | 'Online' | '1v1v1v1'
@@ -25,9 +27,13 @@ export const TicTacToeGameComponent = ({
 	const [searchParams] = useSearchParams()
 	const size = searchParams.get('size')
 	const fieldSize = size ? parseInt(size, 10) : 3
+	const navigate = useNavigate()
+	const { startGameWithAI } = useGameApi(gameId)
+	const { aiTimeLeft } = useAIGame(gameId, fieldSize)
 	const { user } = useUser()
 
 	let gameHook
+
 	switch (gameMode) {
 		case 'AI':
 			gameHook = useAIGame(gameId, fieldSize)
@@ -42,14 +48,8 @@ export const TicTacToeGameComponent = ({
 			return <div>Invalid game mode</div>
 	}
 
-	const {
-		gameState,
-		isLoading,
-		startGame,
-		handleCellClick,
-		checkWinner,
-		timeLeft,
-	} = gameHook
+	const { gameState, isLoading, handleCellClick, checkWinner, timeLeft } =
+		gameHook
 
 	const statusMessage = useGameStatus({
 		gameState,
@@ -67,10 +67,12 @@ export const TicTacToeGameComponent = ({
 	const handleCellClickWrapper = (r: number, c: number) => {
 		handleCellClick(r, c)
 	}
-
-	const startNewGameWrapper = async () => {
+	const startNewGameWrapper = (boardSize: number) => {
+		// Pass the required functions and data to your helper
 		if (gameMode === 'AI' && user && user._id) {
-			await startGame(user._id)
+			console.log('start')
+
+			startGame(gameMode, boardSize, startGameWithAI, user, navigate)
 		} else {
 		}
 	}
@@ -101,13 +103,15 @@ export const TicTacToeGameComponent = ({
 					userIds={gameState.userIds}
 					userSymbols={gameState.userSymbols}
 					timeLeft={timeLeft}
-					currentPlayerIndex={gameState.currentPlayerIndex}
+					aiTimeLeft={aiTimeLeft}
+					currentPlayerIndex={gameState?.currentTurn}
 				/>
 				<GameBoard board={gameState.board} onClick={handleCellClickWrapper} />
 			</Container>
-			{gameState.gameStatus === 'completed' && (
+			{(gameState.gameStatus === 'completed' ||
+				gameState.gameStatus === 'lost') && (
 				<Button
-					onClick={startNewGameWrapper}
+					onClick={() => startNewGameWrapper(fieldSize)}
 					disabled={isLoading}
 					className='mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded'
 				>

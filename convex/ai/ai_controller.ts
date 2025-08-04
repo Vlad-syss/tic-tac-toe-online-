@@ -49,6 +49,7 @@ export const createGameWithAI = mutation({
 			updatedAt: new Date().toISOString(),
 			board,
 			currentTurn: userSymbol === 'X' ? userId : aiPlayer,
+			moveMadeAt: new Date().toISOString(),
 		})
 		const game = await ctx.db.get(gameResult)
 
@@ -110,6 +111,7 @@ export const recordAIMove = mutation({
 			const updates: Partial<Doc<'games'>> = {
 				board: newBoard,
 				updatedAt: new Date().toISOString(),
+				moveMadeAt: new Date().toISOString(),
 			}
 
 			// Змінюємо статус гри, якщо потрібно
@@ -117,8 +119,10 @@ export const recordAIMove = mutation({
 				updates.gameStatus = 'in_progress'
 			}
 
+			console.log(isWin, isDraw)
+
 			if (isWin) {
-				updates.gameStatus = 'completed'
+				updates.gameStatus = 'lost'
 				updates.isDraw = false
 			} else if (isDraw) {
 				updates.gameStatus = 'completed'

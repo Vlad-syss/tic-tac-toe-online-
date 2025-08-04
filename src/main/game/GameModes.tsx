@@ -4,25 +4,18 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
 import { useGameApi, useUser } from '../../hooks'
+import { startGame } from '../../utils/gameUtils'
 
 export const GameModes = () => {
 	const { user } = useUser()
-	const navigate = useNavigate()
-	const [boardSize, setBoardSize] = useState(3)
 	const { startGameWithAI } = useGameApi(null)
+	const [boardSize, setBoardSize] = useState(3)
+	const navigate = useNavigate()
 
-	const startGame = async (mode: string) => {
-		if (user === undefined) return
-		if (mode === 'ai') {
-			const newGame = await startGameWithAI(user?._id, boardSize)
-			if (newGame) {
-				navigate(`/game/${mode}?size=${boardSize}&gameId=${newGame._id}`)
-			}
-		} else {
-			navigate(`/game/${mode}?size=${boardSize}`)
-		}
+	const handleStartGame = (mode: string, boardSize: number) => {
+		// Pass the required functions and data to your helper
+		startGame(mode, boardSize, startGameWithAI, user, navigate)
 	}
-
 	return (
 		<div className='flex flex-col items-center space-y-6 p-8 bg-green-200/60 shadow-2xl rounded-lg w-full'>
 			<h2 className='text-4xl font-bold text-green-800'>Game Modes</h2>
@@ -80,7 +73,7 @@ export const GameModes = () => {
 						className='mt-4'
 						variant='greenDark'
 						size='lg'
-						onClick={() => startGame('ai')}
+						onClick={() => handleStartGame('ai', boardSize)}
 					>
 						Start Game
 					</Button>
@@ -94,7 +87,7 @@ export const GameModes = () => {
 						className='mt-4 bg-blue-600 text-blue-100 hover:bg-blue-600/90'
 						variant='costume'
 						size='lg'
-						onClick={() => startGame('online')}
+						onClick={() => handleStartGame('online', boardSize)}
 					>
 						Find Opponent
 					</Button>
@@ -110,7 +103,7 @@ export const GameModes = () => {
 						className='mt-4 bg-purple-600 hover:bg-purple-600/90'
 						variant='costume'
 						size='lg'
-						onClick={() => startGame('1v1v1v1')}
+						onClick={() => handleStartGame('1v1v1v1', boardSize)}
 					>
 						Start 4 players
 					</Button>

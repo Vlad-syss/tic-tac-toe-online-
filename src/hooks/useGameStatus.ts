@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { GameState } from '../types'
+import { useUser } from './useUser'
 
 interface UseGameStatusProps {
 	gameState: GameState | null
-	checkWinner: () => 'You' | 'AI' | 'Opponent' | 'Draw' | null
+	checkWinner: (
+		gameState: GameState | null,
+		isAI: boolean
+	) => 'Draw' | 'You' | 'Opponent' | 'Lost' | null
 	isAI: boolean
 }
 
@@ -14,31 +18,50 @@ export const useGameStatus = ({
 	isAI,
 }: UseGameStatusProps) => {
 	const [statusMessage, setStatusMessage] = useState('')
-	console.log(gameState)
+	const { user } = useUser()
+	const gameEndedRef = useRef(false) // 🧠 Track if we already handled game end
 
 	useEffect(() => {
-		if (!gameState) return
-
-		if (checkWinner()) {
-			const winner = checkWinner()
-			const message =
-				winner === 'Draw' ? 'Game ended in a draw!' : `${winner} won the game!`
-
-			setStatusMessage(message)
-			toast.success(message, {
-				style: { background: '#4CAF50', color: '#fff' },
-			})
-		} else {
-			const message =
-				gameState.currentPlayerIndex === 0
-					? 'Your turn'
-					: isAI
-						? 'AI is thinking...'
-						: 'Opponent turn'
-
-			setStatusMessage(message)
+		if (!gameState) {
+			setStatusMessage('Waiting for game to start...')
+			gameEndedRef.current = false
+			return
 		}
-	}, [gameState, checkWinner, isAI])
+
+		const winner = checkWinner(gameState, isAI)
+		console.log(winner)
+
+		if (winner && !gameEndedRef.current) {
+			gameEndedRef.current = true // ✅ Prevent multiple toasts
+
+			let message
+			if (winner === 'Draw') {
+				message = 'Game ended in a draw!'
+				toast.success(message, {
+					style: { background: '#4CAF50', color: '#fff' },
+				})
+			} else if (winner === 'Lost') {
+				message = 'You Lost the game!'
+				toast.error(message, {
+					style: { background: '#f44336', color: '#fff' },
+				})
+			} else {
+				message = `${winner} won the game!`
+				toast.success(message, {
+					style: { background: '#4CAF50', color: '#fff' },
+				})
+			}
+			setStatusMessage(message)
+		} else if (!winner) {
+			gameEndedRef.current = false // 🔄 Allow future games to show toast again
+
+			if (gameState.currentTurn === user?._id) {
+				setStatusMessage('Your turn')
+			} else {
+				setStatusMessage(isAI ? 'AI is thinking...' : 'Opponent turn')
+			}
+		}
+	}, [gameState, isAI, user, checkWinner])
 
 	return statusMessage
 }

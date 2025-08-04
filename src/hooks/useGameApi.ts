@@ -12,6 +12,7 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 	)
 	const makeMoves = useMutation(api.games.games_controller.makeMove)
 	const deleteAi = useMutation(api.ai.ai_controller.deleteAIUser)
+	const skipMoves = useMutation(api.games.games_controller.skipMove)
 
 	const [mutationLoading, setMutationLoading] = useState(false)
 
@@ -33,6 +34,12 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 		setMutationLoading(false)
 	}
 
+	const skipMove = async (gameId: any) => {
+		setMutationLoading(true)
+		await skipMoves(gameId)
+		setMutationLoading(false)
+	}
+
 	const startNewGame = async (game: any) => {
 		setMutationLoading(true)
 		await startGame(game)
@@ -48,5 +55,6 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 		startNewGame,
 		isLoading: getGame === undefined || mutationLoading,
 		makeMoves,
+		skipMove,
 	}
 }
