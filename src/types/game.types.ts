@@ -11,10 +11,8 @@ export type GameStatus = 'waiting' | 'in_progress' | 'completed' | 'canceled'
 
 export interface Move {
 	gameId: Id<'games'>
-	// playerId: string
 	row: number
 	col: number
-	symbol: SymbolType
 }
 
 export interface Cell {
@@ -33,6 +31,7 @@ export interface GameState {
 	board: Cell[][]
 	userIds: Id<'users'>[]
 	currentPlayerIndex: number
+	currentTurn?: Id<'users'> | null
 	gameMode: GameMode
 	gameStatus: GameStatus
 	winner?: Id<'users'> | null

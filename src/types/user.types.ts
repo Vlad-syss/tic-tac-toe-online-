@@ -6,6 +6,7 @@ export interface UserType {
 	offlineRating: number
 	totalGamesPlayed: number
 	highestWinStreak: number
+	currentWinStreak?: number
 	avatarUrl?: string
 	totalWins: number
 	_creationTime: string

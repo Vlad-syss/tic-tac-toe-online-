@@ -1,6 +1,8 @@
 import { v } from 'convex/values'
 import { Doc, Id } from '../_generated/dataModel'
 import { mutation, query } from '../_generated/server'
+import { calculateElo, calculateEloDraw } from '../utils/elo'
+import { checkWinCondition, isBoardFull } from '../utils/gameLogic'
 
 export const startNewGame = mutation({
 	args: {
@@ -12,48 +14,43 @@ export const startNewGame = mutation({
 		),
 		fieldSize: v.number(),
 		firstPlayerId: v.optional(v.id('users')),
+		inviteCode: v.optional(v.string()),
 	},
-	handler: async (ctx, { userIds, gameMode, fieldSize, firstPlayerId }) => {
-		console.log('Creating game with users:', userIds)
-		const createdAt = new Date().toISOString()
-		const updatedAt = createdAt
+	handler: async (ctx, { userIds, gameMode, fieldSize, firstPlayerId, inviteCode }) => {
+		const now = new Date().toISOString()
 
-		const board = Array.from({ length: fieldSize }, () =>
-			Array.from({ length: fieldSize }, () => ({
+		// Correctly initialize board with row/col indices
+		const board = Array.from({ length: fieldSize }, (_, rowIndex) =>
+			Array.from({ length: fieldSize }, (_, colIndex) => ({
 				symbol: '' as 'X' | 'O' | 'Square' | 'Triangle' | '',
-				row: 0,
-				col: 0,
+				row: rowIndex,
+				col: colIndex,
 			}))
 		)
 
-		const startingPlayerId = firstPlayerId || userIds[0]
+		const startingPlayerId = firstPlayerId ?? userIds[0]
 
+		const symbols: ('X' | 'O' | 'Square' | 'Triangle')[] = ['X', 'O', 'Square', 'Triangle']
 		const userSymbols: Record<string, 'X' | 'O' | 'Square' | 'Triangle'> = {}
-		const symbols: ('X' | 'O' | 'Square' | 'Triangle')[] = [
-			'X',
-			'O',
-			'Square',
-			'Triangle',
-		]
-
 		userIds.forEach((userId, index) => {
 			userSymbols[userId] = symbols[index % symbols.length]
 		})
 
-		const game = await ctx.db.insert('games', {
+		const gameId = await ctx.db.insert('games', {
 			userIds,
 			gameStatus: 'waiting',
 			gameMode,
 			fieldSize,
 			isDraw: false,
-			createdAt,
-			updatedAt,
+			createdAt: now,
+			updatedAt: now,
 			board,
 			currentTurn: startingPlayerId,
 			userSymbols,
+			inviteCode,
 		})
 
-		return game
+		return gameId
 	},
 })
 
@@ -67,102 +64,13 @@ export const getGame = query({
 	},
 })
 
-export const updateGameStatus = mutation({
-	args: {
-		gameId: v.id('games'),
-		gameStatus: v.union(
-			v.literal('waiting'),
-			v.literal('in_progress'),
-			v.literal('completed'),
-			v.literal('canceled')
-		),
-		winnerId: v.optional(v.id('users')),
-		isDraw: v.optional(v.boolean()),
-	},
-	handler: async (ctx, { gameId, gameStatus, winnerId, isDraw }) => {
-		const game = await ctx.db.get(gameId)
-		if (!game) {
-			throw new Error('Game not found')
-		}
-
-		const updates: Partial<Doc<'games'>> = {
-			gameStatus,
-			updatedAt: new Date().toISOString(),
-		}
-
-		if (winnerId !== undefined) {
-			updates.winnerId = winnerId
-		}
-
-		if (isDraw !== undefined) {
-			updates.isDraw = isDraw
-		}
-
-		await ctx.db.patch(gameId, updates)
-
-		if (gameStatus === 'in_progress') {
-			const nextPlayerIndex =
-				(game.userIds.indexOf(game.currentTurn!) + 1) % game.userIds.length
-			await ctx.db.patch(gameId, {
-				currentTurn: game.userIds[nextPlayerIndex] as Id<'users'>,
-			})
-		}
-
-		return gameId
-	},
-})
-
-// moves for game
-const checkWinCondition = (
-	board: {
-		symbol: 'X' | 'O' | 'Square' | 'Triangle' | ''
-		row: number
-		col: number
-	}[][],
-	symbol: 'X' | 'O' | 'Square' | 'Triangle' | '',
-	fieldSize: number
-) => {
-	// Check rows
-	for (let i = 0; i < fieldSize; i++) {
-		if (board[i].every(cell => cell.symbol === symbol)) return true
-	}
-
-	// Check columns
-	for (let j = 0; j < fieldSize; j++) {
-		if (board.every(row => row[j].symbol === symbol)) return true
-	}
-
-	// Check diagonals
-	if (board.every((row, i) => row[i].symbol === symbol)) return true
-	if (board.every((row, i) => row[fieldSize - 1 - i].symbol === symbol))
-		return true
-
-	return false
-}
-
-const isBoardFull = (
-	board: {
-		symbol: 'X' | 'O' | 'Square' | 'Triangle' | ''
-		row: number
-		col: number
-	}[][]
-) => {
-	return board.every(row => row.every(cell => cell.symbol !== ''))
-}
-
 export const makeMove = mutation({
 	args: {
 		gameId: v.id('games'),
 		row: v.number(),
 		col: v.number(),
-		symbol: v.union(
-			v.literal('X'),
-			v.literal('O'),
-			v.literal('Square'),
-			v.literal('Triangle')
-		),
 	},
-	handler: async (ctx, { gameId, row, col, symbol }) => {
+	handler: async (ctx, { gameId, row, col }) => {
 		const identity = await ctx.auth.getUserIdentity()
 		if (!identity) throw new Error('Not authenticated')
 
@@ -175,9 +83,7 @@ export const makeMove = mutation({
 		const playerId = user._id
 
 		const game = await ctx.db.get(gameId)
-		if (!game) {
-			throw new Error('Game not found')
-		}
+		if (!game) throw new Error('Game not found')
 
 		if (game.gameStatus !== 'waiting' && game.gameStatus !== 'in_progress') {
 			throw new Error('Game is not active')
@@ -190,14 +96,19 @@ export const makeMove = mutation({
 		if (!game.userIds.includes(playerId)) {
 			throw new Error('You are not part of this game')
 		}
+
 		if (row < 0 || row >= game.fieldSize || col < 0 || col >= game.fieldSize) {
 			throw new Error('Move is out of bounds')
 		}
+
 		if (game.board[row][col].symbol !== '') {
 			throw new Error('This cell is already occupied')
 		}
 
-		// const createdAt = new Date().toISOString()
+		// Derive symbol server-side — never trust client
+		const symbol = game.userSymbols[playerId]
+		if (!symbol) throw new Error('Player has no symbol assigned in this game')
+
 		const newBoard = game.board.map((rowArr, rowIndex) =>
 			rowArr.map((cell, colIndex) =>
 				rowIndex === row && colIndex === col ? { ...cell, symbol } : cell
@@ -210,10 +121,7 @@ export const makeMove = mutation({
 		const updates: Partial<Doc<'games'>> = {
 			board: newBoard,
 			updatedAt: new Date().toISOString(),
-		}
-
-		if (game.gameStatus === 'waiting') {
-			updates.gameStatus = 'in_progress'
+			gameStatus: game.gameStatus === 'waiting' ? 'in_progress' : game.gameStatus,
 		}
 
 		if (isWin) {
@@ -231,45 +139,130 @@ export const makeMove = mutation({
 
 		await ctx.db.patch(gameId, updates)
 
-		if (isWin) {
-			await ctx.db.patch(playerId, {
-				totalGamesPlayed: (user.totalGamesPlayed || 0) + 1,
-				totalWins: (user.totalWins || 0) + 1,
-			})
-		} else if (isDraw) {
-			await ctx.db.patch(playerId, {
-				totalGamesPlayed: (user.totalGamesPlayed || 0) + 1,
-			})
+		// Handle stats and cleanup when game ends
+		if (isWin || isDraw) {
+			const isAIGame = game.gameMode === 'AI'
+			const allPlayers = await Promise.all(game.userIds.map(id => ctx.db.get(id)))
+
+			if (isWin) {
+				const winner = allPlayers.find(p => p?._id === playerId)
+				if (winner && !winner.isAI) {
+					const ratingField = isAIGame ? 'offlineRating' : 'onlineRating'
+					const opponents = allPlayers.filter(p => p && p._id !== playerId)
+					const avgOpponentRating =
+						opponents.reduce((sum, p) => sum + ((p as any)?.[ratingField] ?? 1000), 0) /
+						Math.max(opponents.length, 1)
+
+					const winnerRating = (winner as any)[ratingField] ?? 1000
+					const { newWinnerRating } = calculateElo(winnerRating, avgOpponentRating)
+
+					const newStreak = (winner.currentWinStreak ?? 0) + 1
+					const patch: Partial<Doc<'users'>> = {
+						totalGamesPlayed: (winner.totalGamesPlayed || 0) + 1,
+						totalWins: (winner.totalWins || 0) + 1,
+						currentWinStreak: newStreak,
+						highestWinStreak: Math.max(newStreak, winner.highestWinStreak || 0),
+					}
+					patch[ratingField] = newWinnerRating
+					await ctx.db.patch(winner._id, patch)
+				}
+
+				const losers = allPlayers.filter(p => p && p._id !== playerId && !p.isAI)
+				for (const loser of losers) {
+					if (!loser) continue
+					const ratingField = isAIGame ? 'offlineRating' : 'onlineRating'
+					const loserRating = (loser as any)[ratingField] ?? 1000
+					const winnerRating = (winner as any)?.[isAIGame ? 'offlineRating' : 'onlineRating'] ?? 1000
+					const { newLoserRating } = calculateElo(winnerRating, loserRating)
+					const patch: Partial<Doc<'users'>> = {
+						totalGamesPlayed: (loser.totalGamesPlayed || 0) + 1,
+						currentWinStreak: 0,
+					}
+					patch[ratingField] = newLoserRating
+					await ctx.db.patch(loser._id, patch)
+				}
+			} else if (isDraw) {
+				const realPlayers = allPlayers.filter(p => p && !p.isAI)
+				const ratingField = isAIGame ? 'offlineRating' : 'onlineRating'
+				const avgRating =
+					realPlayers.reduce((sum, p) => sum + ((p as any)?.[ratingField] ?? 1000), 0) /
+					Math.max(realPlayers.length, 1)
+
+				for (const player of realPlayers) {
+					if (!player) continue
+					const playerRating = (player as any)[ratingField] ?? 1000
+					const { newRating1 } = calculateEloDraw(playerRating, avgRating)
+					const patch: Partial<Doc<'users'>> = {
+						totalGamesPlayed: (player.totalGamesPlayed || 0) + 1,
+						currentWinStreak: 0,
+					}
+					patch[ratingField] = newRating1
+					await ctx.db.patch(player._id, patch)
+				}
+			}
+
+			// Auto-delete AI user if this was an AI game (human won or drew)
+			if (isAIGame) {
+				for (const player of allPlayers) {
+					if (player?.isAI) {
+						await ctx.db.delete(player._id)
+					}
+				}
+			}
 		}
 
 		return { success: true, isWin, isDraw }
 	},
 })
 
-export const getMoves = query({
-	args: { gameId: v.id('games') },
-	handler: async (ctx, { gameId }) => {
-		const game = await ctx.db.get(gameId)
-		if (!game) return null
-		return game.board
+export const getGameByInviteCode = query({
+	args: { inviteCode: v.string() },
+	handler: async (ctx, { inviteCode }) => {
+		return await ctx.db
+			.query('games')
+			.withIndex('by_invite_code', q => q.eq('inviteCode', inviteCode))
+			.unique()
 	},
 })
 
-export const getLastMove = query({
-	args: { gameId: v.id('games') },
-	handler: async (ctx, { gameId }) => {
-		const game = await ctx.db.get(gameId)
-		if (!game || game.board.every(row => row.every(cell => cell.symbol === '')))
-			return null
+export const joinGameByInvite = mutation({
+	args: {
+		inviteCode: v.string(),
+		userId: v.id('users'),
+	},
+	handler: async (ctx, { inviteCode, userId }) => {
+		const game = await ctx.db
+			.query('games')
+			.withIndex('by_invite_code', q => q.eq('inviteCode', inviteCode))
+			.unique()
 
-		for (let i = game.board.length - 1; i >= 0; i--) {
-			for (let j = game.board[i].length - 1; j >= 0; j--) {
-				if (game.board[i][j].symbol !== '') {
-					return game.board[i][j]
-				}
-			}
+		if (!game) throw new Error('Game not found with this invite code')
+		if (game.gameStatus !== 'waiting') throw new Error('Game is no longer accepting players')
+		if (game.userIds.includes(userId)) return game._id
+
+		const maxPlayers = game.gameMode === '1v1v1v1' ? 4 : 2
+		if (game.userIds.length >= maxPlayers) throw new Error('Game is full')
+
+		const symbols: ('X' | 'O' | 'Square' | 'Triangle')[] = ['X', 'O', 'Square', 'Triangle']
+		const newSymbol = symbols[game.userIds.length % symbols.length]
+
+		const updatedUserIds = [...game.userIds, userId]
+		const updatedUserSymbols = { ...game.userSymbols, [userId]: newSymbol }
+
+		const updates: Partial<Doc<'games'>> = {
+			userIds: updatedUserIds,
+			userSymbols: updatedUserSymbols,
+			updatedAt: new Date().toISOString(),
 		}
-		return null
+
+		const isOnlineFull = game.gameMode === 'Online' && updatedUserIds.length >= 2
+		const isFourFull = game.gameMode === '1v1v1v1' && updatedUserIds.length >= 4
+		if (isOnlineFull || isFourFull) {
+			updates.gameStatus = 'in_progress'
+		}
+
+		await ctx.db.patch(game._id, updates)
+		return game._id
 	},
 })
 
@@ -285,5 +278,33 @@ export const getCurrentBoardState = query({
 			isDraw: game.isDraw,
 			winnerId: game.winnerId,
 		}
+	},
+})
+
+export const updateGameStatus = mutation({
+	args: {
+		gameId: v.id('games'),
+		gameStatus: v.union(
+			v.literal('waiting'),
+			v.literal('in_progress'),
+			v.literal('completed'),
+			v.literal('canceled')
+		),
+		winnerId: v.optional(v.id('users')),
+		isDraw: v.optional(v.boolean()),
+	},
+	handler: async (ctx, { gameId, gameStatus, winnerId, isDraw }) => {
+		const game = await ctx.db.get(gameId)
+		if (!game) throw new Error('Game not found')
+
+		const updates: Partial<Doc<'games'>> = {
+			gameStatus,
+			updatedAt: new Date().toISOString(),
+		}
+		if (winnerId !== undefined) updates.winnerId = winnerId
+		if (isDraw !== undefined) updates.isDraw = isDraw
+
+		await ctx.db.patch(gameId, updates)
+		return gameId
 	},
 })

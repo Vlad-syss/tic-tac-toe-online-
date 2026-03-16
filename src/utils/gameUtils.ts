@@ -18,13 +18,16 @@ export const createGameState = (
 		}))
 	)
 
-	const currentPlayerIndex =
-		getGame.board.flat().filter(cell => cell.symbol !== '').length % 2
+	const currentTurn = getGame.currentTurn ?? null
+	const currentPlayerIndex = currentTurn
+		? getGame.userIds.indexOf(currentTurn)
+		: 0
 
 	return {
 		board: board2D,
 		userIds: getGame.userIds,
-		currentPlayerIndex,
+		currentPlayerIndex: currentPlayerIndex >= 0 ? currentPlayerIndex : 0,
+		currentTurn,
 		gameMode: getGame.gameMode,
 		gameStatus: getGame.gameStatus,
 		winner: getGame.winnerId,
@@ -42,26 +45,33 @@ export const handleCellClick = (
 	gameId: Id<'games'> | null,
 	makeMove: (move: Move) => void,
 	row: number,
-	col: number
+	col: number,
+	currentUserId?: Id<'users'> | null
 ) => {
+	if (!gameState || !gameId) return
 	if (
-		gameState?.gameStatus !== 'in_progress' ||
-		gameState?.currentPlayerIndex !== 0 ||
-		!gameId
+		gameState.gameStatus !== 'in_progress' &&
+		gameState.gameStatus !== 'waiting'
 	) {
 		return
 	}
-	// const playerId = gameState.userIds[gameState.currentPlayerIndex]
-	// if (!playerId) return
-	const symbol: SymbolType = gameState.currentPlayerIndex === 0 ? 'X' : 'O'
-	const moveObject = {
-		gameId,
-		row,
-		col,
-		symbol,
+
+	// For AI games, only allow moves when it's the human's turn (index 0)
+	if (gameState.gameMode === 'AI' && gameState.currentPlayerIndex !== 0) {
+		return
 	}
-	console.log('Move object before makeMoves:', moveObject)
-	makeMove(moveObject)
+
+	// For online/multiplayer games, check if it's the current user's turn
+	if (
+		gameState.gameMode !== 'AI' &&
+		currentUserId &&
+		gameState.currentTurn !== currentUserId
+	) {
+		return
+	}
+
+	// Symbol is derived server-side; just send row/col
+	makeMove({ gameId, row, col })
 }
 
 export const checkWinner = (gameState: GameState | null) => {

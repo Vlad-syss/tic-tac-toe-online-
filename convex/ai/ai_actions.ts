@@ -5,7 +5,6 @@ import { v } from 'convex/values'
 import { api } from '../_generated/api'
 import { action } from '../_generated/server'
 
-console.log('Gemini API Key:', process.env.VITE_GEMINI_APIKEY)
 if (!process.env.VITE_GEMINI_APIKEY) {
 	console.error('Gemini API Key is missing!')
 }
@@ -32,55 +31,58 @@ export const generateAIMove = action({
 		fieldSize: v.number(),
 		gameId: v.id('games'),
 		playerId: v.id('users'),
+		aiSymbol: v.union(
+			v.literal('X'),
+			v.literal('O'),
+			v.literal('Square'),
+			v.literal('Triangle')
+		),
 	},
-	handler: async (ctx, { board, fieldSize, gameId, playerId }) => {
+	handler: async (ctx, { board, fieldSize, gameId, playerId, aiSymbol }) => {
 		try {
+			const humanSymbol = aiSymbol === 'X' ? 'O' : 'X'
+
 			const boardString = board
-				.map(row => row.map(cell => cell.symbol || ' ').join('|'))
+				.map(row => row.map(cell => cell.symbol || '.').join('|'))
 				.join('\n')
 
-			const prompt = `
-					You are playing a tic-tac-toe game on a ${fieldSize}x${fieldSize} board.
-					You are playing as 'O' and your opponent is 'X'.
-					Current board state:
-					${boardString}
+			const prompt = `You are playing tic-tac-toe on a ${fieldSize}x${fieldSize} board.
+You are '${aiSymbol}'. Your opponent is '${humanSymbol}'.
+Empty cells are shown as '.'.
 
-					Analyze the board and provide the best move as a JSON object with row and column indices (0-based).
-					Only return the JSON object in this format: {"row": number, "col": number}
-					Make sure the move is valid (the cell is empty).
-					`
+Board (0-indexed rows top-to-bottom, columns left-to-right):
+${boardString}
+
+Win condition: fill an entire row, column, or diagonal with your symbol.
+
+Respond with ONLY valid JSON (no other text): {"row": number, "col": number}
+Choose an empty cell ('.') and make the best strategic move for '${aiSymbol}'.`
 
 			const result = await model.generateContent(prompt)
 			const response = result.response.text()
 
-			let move
+			let move: { row: number; col: number } | null = null
 			try {
-				const jsonMatch = response.match(/\{[\s\S]*?\}/) // More aggressive match
+				const jsonMatch = response.match(/\{\s*"row"\s*:\s*\d+\s*,\s*"col"\s*:\s*\d+\s*\}/)
 				if (jsonMatch) {
-					move = JSON.parse(jsonMatch[0])
-				} else {
-					throw new Error('Could not find JSON in response')
+					const parsed = JSON.parse(jsonMatch[0])
+					if (
+						typeof parsed.row === 'number' &&
+						typeof parsed.col === 'number' &&
+						parsed.row >= 0 && parsed.row < fieldSize &&
+						parsed.col >= 0 && parsed.col < fieldSize &&
+						board[parsed.row][parsed.col].symbol === ''
+					) {
+						move = parsed
+					}
 				}
 			} catch (parseError) {
 				console.error('Failed to parse AI response:', response, parseError)
-				throw new Error('Invalid AI response format')
 			}
 
-			if (
-				typeof move.row !== 'number' ||
-				typeof move.col !== 'number' ||
-				move.row < 0 ||
-				move.row >= fieldSize ||
-				move.col < 0 ||
-				move.col >= fieldSize
-			) {
-				throw new Error('AI returned invalid move coordinates')
-			}
-
-			// Check if the cell is already occupied
-			if (board[move.row][move.col].symbol !== '') {
-				// Find a random empty cell as fallback
-				const emptyCells = []
+			// Fallback to random empty cell if AI returned invalid move
+			if (!move) {
+				const emptyCells: { row: number; col: number }[] = []
 				for (let r = 0; r < fieldSize; r++) {
 					for (let c = 0; c < fieldSize; c++) {
 						if (board[r][c].symbol === '') {
@@ -88,24 +90,48 @@ export const generateAIMove = action({
 						}
 					}
 				}
-
 				if (emptyCells.length === 0) {
-					throw new Error('No valid moves available')
+					console.error('No valid moves available on the board')
+					return null
 				}
-
 				move = emptyCells[Math.floor(Math.random() * emptyCells.length)]
+				console.log('AI used fallback random move:', move)
 			}
 
 			await ctx.runMutation(api.ai.ai_controller.recordAIMove, {
 				gameId,
 				row: move.row,
 				col: move.col,
+				playerId,
 			})
 
 			return move
 		} catch (error) {
-			console.error('Error generating AI move:', error)
-			return null
+			console.error('Error generating AI move, falling back to random:', error)
+
+			// On any API error (quota, network, etc.) — fall back to a random empty cell
+			// so the game never gets permanently stuck
+			const emptyCells: { row: number; col: number }[] = []
+			for (let r = 0; r < fieldSize; r++) {
+				for (let c = 0; c < fieldSize; c++) {
+					if (board[r][c].symbol === '') {
+						emptyCells.push({ row: r, col: c })
+					}
+				}
+			}
+			if (emptyCells.length === 0) return null
+
+			const fallback = emptyCells[Math.floor(Math.random() * emptyCells.length)]
+			console.log('AI fallback random move:', fallback)
+
+			await ctx.runMutation(api.ai.ai_controller.recordAIMove, {
+				gameId,
+				row: fallback.row,
+				col: fallback.col,
+				playerId,
+			})
+
+			return fallback
 		}
 	},
 })

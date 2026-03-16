@@ -12,7 +12,6 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 	)
 	const makeMoves = useMutation(api.games.games_controller.makeMove)
 	const aiMakeMove = useMutation(api.ai.ai_controller.aiMakeMove)
-	const deleteAi = useMutation(api.ai.ai_controller.deleteAIUser)
 
 	const [mutationLoading, setMutationLoading] = useState(false)
 
@@ -23,38 +22,47 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 		return game
 	}
 
-	const makeMove = async (move: any) => {
+	const makeMove = async (move: { gameId: Id<'games'>; row: number; col: number }) => {
 		setMutationLoading(true)
 		await makeMoves(move)
 		setMutationLoading(false)
 	}
 
-	const aiMove = async (move: any) => {
+	const aiMove = async (move: { gameId: Id<'games'>; playerId: Id<'users'> }) => {
 		setMutationLoading(true)
 		await aiMakeMove(move)
 		setMutationLoading(false)
 	}
 
-	const deleteAI = async (ai: any) => {
-		setMutationLoading(true)
-		await deleteAi(ai)
-		setMutationLoading(false)
-	}
-
 	const startNewGame = async (game: any) => {
 		setMutationLoading(true)
-		await startGame(game)
+		const result = await startGame(game)
 		setMutationLoading(false)
+		return result
+	}
+
+	const joinByInvite = useMutation(
+		api.games.games_controller.joinGameByInvite
+	)
+
+	const joinGameByInvite = async (
+		inviteCode: string,
+		userId: Id<'users'>
+	) => {
+		setMutationLoading(true)
+		const gameId = await joinByInvite({ inviteCode, userId })
+		setMutationLoading(false)
+		return gameId
 	}
 
 	return {
 		createGameWithAI,
 		getGame,
 		aiMove,
-		deleteAI,
 		startGameWithAI,
 		makeMove,
 		startNewGame,
+		joinGameByInvite,
 		isLoading: getGame === undefined || mutationLoading,
 		makeMoves,
 	}

@@ -1,101 +1,119 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useGameApi } from '.'
 import { Id } from '../../convex/_generated/dataModel'
-import { GameState } from '../types'
-import {
-	checkWinner,
-	createGameState,
-	handleCellClick,
-} from '../utils/gameUtils'
+import { checkWinner, createGameState, handleCellClick } from '../utils/gameUtils'
+
+const TURN_SECONDS = 60
 
 export const useAIGame = (gameId: Id<'games'> | null, fieldSize: number) => {
-	const {
-		startGameWithAI,
-		aiMove,
-		deleteAI,
-		makeMoves,
-		isLoading: mutationLoading,
-		getGame,
-	} = useGameApi(gameId)
+	const { startGameWithAI, aiMove, makeMoves, getGame } = useGameApi(gameId)
 
-	const [gameState, setGameState] = useState<GameState | null>(
-		createGameState(getGame)
-	)
+	// Derive gameState directly from query — no useState/useEffect sync, no extra re-render
+	const gameState = useMemo(() => createGameState(getGame), [getGame])
 
 	const [isCreatingGame, setIsCreatingGame] = useState(false)
-	const [timeLeft, setTurnTimeLeft] = useState(60) // Player's remaining time
+	const [timeLeft, setTimeLeft] = useState(TURN_SECONDS)
+
+	// Refs to avoid stale closures in interval callbacks
+	const gameStateRef = useRef(gameState)
+	const gameIdRef = useRef(gameId)
 	const aiMoveRef = useRef(false)
-	const aiDeletedRef = useRef(false)
-	const timerRef = useRef<NodeJS.Timeout | null>(null)
+	const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+	const turnStartRef = useRef<number>(Date.now())
 
-	useEffect(() => {
-		setGameState(createGameState(getGame))
-	}, [getGame])
+	// Keep refs in sync on every render
+	gameStateRef.current = gameState
+	gameIdRef.current = gameId
 
-	// Timer logic: Decrease time every second
+	// AI move trigger: watch currentTurn from DB
 	useEffect(() => {
+		if (!gameState || !gameId) return
+		if (gameState.gameStatus !== 'in_progress') return
+
+		const aiUserId = gameState.userIds[1]
+		if (!aiUserId) return
+
+		if (gameState.currentTurn === aiUserId) {
+			if (aiMoveRef.current) return
+			aiMoveRef.current = true
+			// Fire and forget — don't block on the promise
+			aiMove({ gameId, playerId: aiUserId }).catch(err => {
+				console.error('aiMove failed:', err)
+				aiMoveRef.current = false
+			})
+		} else {
+			// Human's turn — reset guard so AI can move next turn
+			aiMoveRef.current = false
+		}
+	}, [gameState?.currentTurn, gameState?.gameStatus, gameId])
+
+	// Timer: counts down only on the human's turn (index 0)
+	useEffect(() => {
+		if (timerIntervalRef.current) {
+			clearInterval(timerIntervalRef.current)
+			timerIntervalRef.current = null
+		}
+
 		if (!gameState || gameState.gameStatus !== 'in_progress') return
 
-		// Clear previous timer
-		if (timerRef.current) clearInterval(timerRef.current)
-
-		// Start countdown only for human players (AI moves instantly)
-		if (gameState.currentPlayerIndex === 0) {
-			timerRef.current = setInterval(() => {
-				setTurnTimeLeft(prev => {
-					if (prev <= 1) {
-						clearInterval(timerRef.current!)
-						handleTimeoutMove()
-						return 60 // Reset timer for the next turn
-					}
-					return prev - 1
-				})
-			}, 1000)
+		if (gameState.currentPlayerIndex !== 0) {
+			setTimeLeft(TURN_SECONDS)
+			return
 		}
+
+		turnStartRef.current = Date.now()
+		setTimeLeft(TURN_SECONDS)
+
+		timerIntervalRef.current = setInterval(() => {
+			const elapsed = Math.floor((Date.now() - turnStartRef.current) / 1000)
+			const remaining = TURN_SECONDS - elapsed
+
+			if (remaining <= 0) {
+				clearInterval(timerIntervalRef.current!)
+				timerIntervalRef.current = null
+				setTimeLeft(0)
+
+				toast.error('Time ran out!', { style: { background: '#f44336', color: '#fff' } })
+				const gs = gameStateRef.current
+				const gid = gameIdRef.current
+				if (gs && gid && !aiMoveRef.current) {
+					const aiUserId = gs.userIds[1]
+					if (aiUserId) {
+						aiMoveRef.current = true
+						aiMove({ gameId: gid, playerId: aiUserId }).catch(err => {
+							console.error('aiMove timeout failed:', err)
+							aiMoveRef.current = false
+						})
+					}
+				}
+				return
+			}
+
+			setTimeLeft(remaining)
+		}, 500)
 
 		return () => {
-			if (timerRef.current) clearInterval(timerRef.current)
+			if (timerIntervalRef.current) {
+				clearInterval(timerIntervalRef.current)
+				timerIntervalRef.current = null
+			}
 		}
-	}, [gameState?.currentPlayerIndex])
-
-	const handleTimeoutMove = () => {
-		if (!gameState || gameState.currentPlayerIndex !== 0 || !gameId) return
-
-		toast.error('Time ran out! Skipping turn.', {
-			style: { background: '#f44336', color: '#fff' },
-		})
-
-		// AI move immediately since human player missed their turn
-		const aiUserId = gameState.userIds[1]
-		if (aiUserId) {
-			aiMoveRef.current = true
-			aiMove({ gameId, playerId: aiUserId })
-		}
-	}
+	}, [gameState?.currentTurn, gameState?.gameStatus])
 
 	const startGame = useCallback(
 		async (userId: Id<'users'>) => {
 			setIsCreatingGame(true)
 			try {
 				const newGame = await startGameWithAI(userId, fieldSize)
-				if (newGame && newGame._id) {
-					toast.success('New game started!', {
-						style: { background: '#4CAF50', color: '#fff' },
-					})
-					setTurnTimeLeft(60) // Reset timer for a new game
+				if (newGame?._id) {
+					toast.success('Game started!', { style: { background: '#4CAF50', color: '#fff' } })
 					return newGame._id
-				} else {
-					toast.error('Failed to start new game (game ID not found).', {
-						style: { background: '#f44336', color: '#fff' },
-					})
-					return null
 				}
-			} catch (error) {
-				console.error('Error starting new game:', error)
-				toast.error('Failed to start new game.', {
-					style: { background: '#f44336', color: '#fff' },
-				})
+				toast.error('Failed to start game.', { style: { background: '#f44336', color: '#fff' } })
+				return null
+			} catch {
+				toast.error('Failed to start game.', { style: { background: '#f44336', color: '#fff' } })
 				return null
 			} finally {
 				setIsCreatingGame(false)
@@ -104,41 +122,14 @@ export const useAIGame = (gameId: Id<'games'> | null, fieldSize: number) => {
 		[startGameWithAI, fieldSize]
 	)
 
-	useEffect(() => {
-		if (
-			gameState &&
-			gameState.gameStatus === 'completed' &&
-			gameState.userIds[1] &&
-			!aiDeletedRef.current // Check if AI has been deleted
-		) {
-			deleteAI({ aiUserId: gameState.userIds[1] })
-			aiDeletedRef.current = true // Set the flag
-		}
-	}, [gameState?.gameStatus, gameState?.userIds, deleteAI])
-
-	useEffect(() => {
-		if (
-			gameState &&
-			gameState.currentPlayerIndex === 1 &&
-			gameState.gameStatus === 'in_progress' &&
-			gameId &&
-			!aiMoveRef.current
-		) {
-			const aiUserId = gameState.userIds[1]
-			if (!aiUserId) return
-			aiMoveRef.current = true
-			aiMove({ gameId: gameId, playerId: aiUserId })
-		}
-	}, [gameState, aiMove, gameId])
-
 	const handleCellClickWrapper = (row: number, col: number) => {
 		handleCellClick(gameState, gameId, makeMoves, row, col)
-		setTurnTimeLeft(60)
 	}
 
 	return {
 		gameState,
-		isLoading: getGame === undefined || mutationLoading || isCreatingGame,
+		// Never block on mutationLoading — it causes game to unmount mid-turn
+		isLoading: getGame === undefined || isCreatingGame,
 		startGame,
 		handleCellClick: handleCellClickWrapper,
 		checkWinner: () => checkWinner(gameState),

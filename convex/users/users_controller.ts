@@ -39,6 +39,7 @@ export const store = mutation({
 			offlineRating: 1000,
 			totalGamesPlayed: 0,
 			highestWinStreak: 0,
+			currentWinStreak: 0,
 			totalWins: 0,
 		})
 	},
@@ -124,6 +125,7 @@ export const updateUser = mutation({
 			offlineRating: number
 			totalGamesPlayed: number
 			highestWinStreak: number
+			currentWinStreak: number
 			avatarUrl?: string
 			totalWins: number
 		} = {
@@ -133,6 +135,7 @@ export const updateUser = mutation({
 			offlineRating: 1000,
 			totalGamesPlayed: 0,
 			highestWinStreak: 0,
+			currentWinStreak: 0,
 			totalWins: 0,
 		}
 

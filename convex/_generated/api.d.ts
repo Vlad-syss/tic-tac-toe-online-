@@ -18,8 +18,11 @@ import type * as ai_ai_controller from "../ai/ai_controller.js";
 import type * as games_games_controller from "../games/games_controller.js";
 import type * as games_games_schema from "../games/games_schema.js";
 import type * as moves_moves_schema from "../moves/moves_schema.js";
+import type * as users_leaderboard_controller from "../users/leaderboard_controller.js";
 import type * as users_users_controller from "../users/users_controller.js";
 import type * as users_users_schema from "../users/users_schema.js";
+import type * as utils_elo from "../utils/elo.js";
+import type * as utils_gameLogic from "../utils/gameLogic.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -35,8 +38,11 @@ declare const fullApi: ApiFromModules<{
   "games/games_controller": typeof games_games_controller;
   "games/games_schema": typeof games_games_schema;
   "moves/moves_schema": typeof moves_moves_schema;
+  "users/leaderboard_controller": typeof users_leaderboard_controller;
   "users/users_controller": typeof users_users_controller;
   "users/users_schema": typeof users_users_schema;
+  "utils/elo": typeof utils_elo;
+  "utils/gameLogic": typeof utils_gameLogic;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

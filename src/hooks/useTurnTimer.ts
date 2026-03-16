@@ -4,9 +4,11 @@ export const useTurnTimer = (turnEndTime: number, onTimeUp: () => void) => {
 	const [timeLeft, setTimeLeft] = useState(turnEndTime - Date.now())
 
 	useEffect(() => {
+		setTimeLeft(turnEndTime - Date.now())
+
 		const interval = setInterval(() => {
 			const remaining = turnEndTime - Date.now()
-			setTimeLeft(timeLeft)
+			setTimeLeft(remaining)
 
 			if (remaining <= 0) {
 				clearInterval(interval)

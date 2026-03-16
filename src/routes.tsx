@@ -4,6 +4,7 @@ import {
 	AuthenticationGuard,
 	GamePage,
 	Home,
+	LeaderboardPage,
 	ProfilePage,
 } from './pages'
 import { Login } from './pages/_components'
@@ -15,6 +16,7 @@ export const AppRoutes = () => (
 			<Route path='/' element={<Home />} />
 			<Route path='*' element={<Home />} />
 			<Route path='/profile' element={<ProfilePage />} />
+			<Route path='/leaderboard/:type' element={<LeaderboardPage />} />
 			<Route path='/game' element={<GamePage />}>
 				<Route path='ai' element={<AIGame />} />
 				<Route path='online' element={<OnlineGame />} />

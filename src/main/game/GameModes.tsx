@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '../../components/Button'
 import { useGameApi, useUser } from '../../hooks'
+import { generateInviteCode } from '../../utils/inviteCode'
 
 export const GameModes = () => {
 	const { user } = useUser()
 	const navigate = useNavigate()
 	const [boardSize, setBoardSize] = useState(3)
-	const { startGameWithAI } = useGameApi(null)
+	const { startGameWithAI, startNewGame } = useGameApi(null)
 
 	const startGame = async (mode: string) => {
 		if (user === undefined) return
@@ -17,6 +18,21 @@ export const GameModes = () => {
 			const newGame = await startGameWithAI(user?._id, boardSize)
 			if (newGame) {
 				navigate(`/game/${mode}?size=${boardSize}&gameId=${newGame._id}`)
+			}
+		} else if (mode === 'online') {
+			// Auto-create an invite link for finding opponents
+			const code = generateInviteCode()
+			const gameId = await startNewGame({
+				userIds: [user._id],
+				gameMode: 'Online' as const,
+				fieldSize: boardSize,
+				firstPlayerId: user._id,
+				inviteCode: code,
+			})
+			if (gameId) {
+				navigate(
+					`/game/online?size=${boardSize}&gameId=${gameId}&invite=${code}`
+				)
 			}
 		} else {
 			navigate(`/game/${mode}?size=${boardSize}`)
