@@ -40,6 +40,7 @@ export const createGameState = (
 		isDraw: getGame.isDraw,
 		createdAt: getGame.createdAt,
 		updatedAt: getGame.updatedAt,
+		moveMadeAt: getGame.moveMadeAt,
 		fieldSize: getGame.fieldSize,
 		players: getGame.userIds.map(id => ({ user: { _id: id } })),
 		userSymbols: getGame.userSymbols,
@@ -84,7 +85,7 @@ export const handleCellClick = (
 
 export const checkWinner = (gameState: GameState | null, currentUserId?: Id<'users'> | null) => {
 	if (!gameState) return null
-	if (gameState.gameStatus === 'completed') {
+	if (gameState.gameStatus === 'completed' || gameState.gameStatus === 'lost') {
 		if (gameState.isDraw) return 'Draw'
 		if (gameState.gameMode === '1v1v1v1' && gameState.eliminatedPlayers.length > 0) {
 			const first = gameState.eliminatedPlayers.find(ep => ep.position === 1)

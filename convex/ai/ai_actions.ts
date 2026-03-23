@@ -51,6 +51,29 @@ export const generateAIMove = action({
 		const pickRandom = (cells: { row: number; col: number }[]) =>
 			cells[Math.floor(Math.random() * cells.length)]!
 
+		async function tryGenerateAIMove(
+			prompt: string,
+			retries = 3,
+			delayMs = 1000
+		): Promise<string> {
+			for (let attempt = 1; attempt <= retries; attempt++) {
+				try {
+					const result = await model.generateContent(prompt)
+					return result.response.text()
+				} catch (error: unknown) {
+					console.error(`AI generation attempt ${attempt} failed:`, error)
+					if (attempt === retries) throw error
+					const err = error as { status?: number }
+					if (err.status === 503) {
+						await new Promise(resolve => setTimeout(resolve, delayMs))
+					} else {
+						throw error
+					}
+				}
+			}
+			throw new Error('Unhandled AI error')
+		}
+
 		try {
 			const humanSymbol = aiSymbol === 'X' ? 'O' : 'X'
 
@@ -70,8 +93,7 @@ Win condition: fill an entire row, column, or diagonal with your symbol.
 Respond with ONLY valid JSON (no other text): {"row": number, "col": number}
 Choose an empty cell ('.') and make the best strategic move for '${aiSymbol}'.`
 
-			const result = await model.generateContent(prompt)
-			const response = result.response.text()
+			const response = await tryGenerateAIMove(prompt)
 
 			let move: { row: number; col: number } | null = null
 			try {

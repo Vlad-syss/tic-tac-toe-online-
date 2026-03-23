@@ -7,7 +7,12 @@ export type GameUser = {
 
 export type SymbolType = 'X' | 'O' | 'Square' | 'Triangle'
 export type GameMode = 'AI' | 'Online' | '1v1v1v1'
-export type GameStatus = 'waiting' | 'in_progress' | 'completed' | 'canceled'
+export type GameStatus =
+	| 'waiting'
+	| 'in_progress'
+	| 'completed'
+	| 'canceled'
+	| 'lost'
 
 export interface Move {
 	gameId: Id<'games'>
@@ -44,6 +49,7 @@ export interface GameState {
 	isDraw: boolean
 	createdAt: string
 	updatedAt: string
+	moveMadeAt?: string
 	fieldSize: number
 	players: Player[]
 	userSymbols: Record<string, SymbolType>

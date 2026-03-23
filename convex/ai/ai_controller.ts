@@ -46,6 +46,7 @@ export const createGameWithAI = mutation({
 		}
 
 		const firstTurn: Id<'users'> = userSymbol === 'X' ? userId : aiPlayerId
+		const now = new Date().toISOString()
 
 		const gameId = await ctx.db.insert('games', {
 			userIds: [userId, aiPlayerId],
@@ -54,14 +55,15 @@ export const createGameWithAI = mutation({
 			gameMode: 'AI',
 			fieldSize,
 			isDraw: false,
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString(),
+			createdAt: now,
+			updatedAt: now,
 			board,
 			currentTurn: firstTurn,
+			moveMadeAt: now,
 		})
 
 		if (aiSymbol === 'X') {
-			await ctx.scheduler.runAfter(0, api.ai.ai_actions.generateAIMove, {
+			await ctx.scheduler.runAfter(500, api.ai.ai_actions.generateAIMove, {
 				board,
 				fieldSize,
 				gameId,
@@ -122,10 +124,11 @@ export const recordAIMove = mutation({
 		if (isWin || isDraw) {
 			await ctx.db.patch(gameId, {
 				board: newBoard,
-				gameStatus: 'completed',
+				gameStatus: isWin ? 'lost' : 'completed',
 				winnerId: isWin ? (playerId as Id<'users'>) : undefined,
 				isDraw: isDraw,
 				updatedAt: new Date().toISOString(),
+				moveMadeAt: new Date().toISOString(),
 			})
 
 			if (humanId) {
@@ -156,6 +159,7 @@ export const recordAIMove = mutation({
 		await ctx.db.patch(gameId, {
 			board: newBoard,
 			updatedAt: new Date().toISOString(),
+			moveMadeAt: new Date().toISOString(),
 			currentTurn: humanId as Id<'users'>,
 		})
 
@@ -180,7 +184,7 @@ export const aiMakeMove = mutation({
 		const aiSymbol = game.userSymbols[playerId]
 		if (!aiSymbol) return null
 
-		await ctx.scheduler.runAfter(0, api.ai.ai_actions.generateAIMove, {
+		await ctx.scheduler.runAfter(500, api.ai.ai_actions.generateAIMove, {
 			board: game.board,
 			fieldSize: game.fieldSize,
 			gameId,

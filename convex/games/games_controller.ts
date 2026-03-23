@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import { api } from '../_generated/api'
 import { Doc, Id } from '../_generated/dataModel'
 import { mutation, query } from '../_generated/server'
 import { paginationOptsValidator } from 'convex/server'
@@ -50,6 +51,7 @@ export const startNewGame = mutation({
 			currentTurn: startingPlayerId,
 			userSymbols,
 			inviteCode,
+			moveMadeAt: now,
 		})
 
 		return gameId
@@ -142,6 +144,7 @@ export const makeMove = mutation({
 		const updates: Partial<Doc<'games'>> = {
 			board: newBoard,
 			updatedAt: new Date().toISOString(),
+			moveMadeAt: new Date().toISOString(),
 			gameStatus: game.gameStatus === 'waiting' ? 'in_progress' : game.gameStatus,
 		}
 
@@ -209,7 +212,6 @@ export const makeMove = mutation({
 			} else if (isDraw) {
 				updates.gameStatus = 'completed'
 				updates.isDraw = true
-				// On draw, remaining active players split 0 ELO change
 				for (const pid of activePlayers) {
 					const p = await ctx.db.get(pid)
 					if (p) {
@@ -302,7 +304,27 @@ export const makeMove = mutation({
 			}
 		}
 
-		return { success: true, isWin, isDraw }
+		// Trigger AI move if needed
+		if (
+			!isWin &&
+			!isDraw &&
+			game.gameMode === 'AI' &&
+			updates.currentTurn === game.userIds[1]
+		) {
+			await ctx.scheduler.runAfter(1000, api.ai.ai_controller.aiMakeMove, {
+				gameId,
+				playerId: updates.currentTurn!,
+			})
+		}
+
+		return {
+			success: true,
+			isWin,
+			isDraw,
+			nextTurn: updates.currentTurn,
+			gameStatus: updates.gameStatus,
+			moveMadeAt: updates.moveMadeAt,
+		}
 	},
 })
 
@@ -379,7 +401,8 @@ export const updateGameStatus = mutation({
 			v.literal('waiting'),
 			v.literal('in_progress'),
 			v.literal('completed'),
-			v.literal('canceled')
+			v.literal('canceled'),
+			v.literal('lost')
 		),
 		winnerId: v.optional(v.id('users')),
 		isDraw: v.optional(v.boolean()),
@@ -397,6 +420,56 @@ export const updateGameStatus = mutation({
 
 		await ctx.db.patch(gameId, updates)
 		return gameId
+	},
+})
+
+export const skipMove = mutation({
+	args: {
+		gameId: v.id('games'),
+	},
+	handler: async (ctx, { gameId }) => {
+		const identity = await ctx.auth.getUserIdentity()
+		if (!identity) throw new Error('Not authenticated')
+
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_email', q => q.eq('email', identity.email))
+			.unique()
+
+		if (!user) throw new Error('User not found')
+		const playerId = user._id
+
+		const game = await ctx.db.get(gameId)
+		if (!game) throw new Error('Game not found')
+
+		if (game.gameStatus !== 'in_progress') {
+			throw new Error('Game is not in progress')
+		}
+
+		if (game.currentTurn !== playerId) {
+			throw new Error('It is not your turn to skip')
+		}
+
+		const playerIndex = game.userIds.indexOf(playerId)
+		const nextPlayerIndex = (playerIndex + 1) % game.userIds.length
+		const nextPlayerId = game.userIds[nextPlayerIndex]
+
+		const updates: Partial<Doc<'games'>> = {
+			currentTurn: nextPlayerId as Id<'users'>,
+			updatedAt: new Date().toISOString(),
+			moveMadeAt: new Date().toISOString(),
+		}
+
+		await ctx.db.patch(gameId, updates)
+
+		if (game.gameMode === 'AI' && nextPlayerId === game.userIds[1]) {
+			await ctx.scheduler.runAfter(1000, api.ai.ai_controller.aiMakeMove, {
+				gameId,
+				playerId: nextPlayerId as Id<'users'>,
+			})
+		}
+
+		return { success: true, nextTurn: nextPlayerId }
 	},
 })
 
