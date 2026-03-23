@@ -5,9 +5,6 @@ import { v } from 'convex/values'
 import { api } from '../_generated/api'
 import { action } from '../_generated/server'
 
-if (!process.env.VITE_GEMINI_APIKEY) {
-	console.error('Gemini API Key is missing!')
-}
 const client = new GoogleGenerativeAI(process.env.VITE_GEMINI_APIKEY as string)
 const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
@@ -39,6 +36,21 @@ export const generateAIMove = action({
 		),
 	},
 	handler: async (ctx, { board, fieldSize, gameId, playerId, aiSymbol }) => {
+		const getEmptyCells = () => {
+			const cells: { row: number; col: number }[] = []
+			for (let r = 0; r < fieldSize; r++) {
+				for (let c = 0; c < fieldSize; c++) {
+					if (board[r]?.[c]?.symbol === '') {
+						cells.push({ row: r, col: c })
+					}
+				}
+			}
+			return cells
+		}
+
+		const pickRandom = (cells: { row: number; col: number }[]) =>
+			cells[Math.floor(Math.random() * cells.length)]!
+
 		try {
 			const humanSymbol = aiSymbol === 'X' ? 'O' : 'X'
 
@@ -71,31 +83,18 @@ Choose an empty cell ('.') and make the best strategic move for '${aiSymbol}'.`
 						typeof parsed.col === 'number' &&
 						parsed.row >= 0 && parsed.row < fieldSize &&
 						parsed.col >= 0 && parsed.col < fieldSize &&
-						board[parsed.row][parsed.col].symbol === ''
+						board[parsed.row]?.[parsed.col]?.symbol === ''
 					) {
 						move = parsed
 					}
 				}
-			} catch (parseError) {
-				console.error('Failed to parse AI response:', response, parseError)
+			} catch {
 			}
 
-			// Fallback to random empty cell if AI returned invalid move
 			if (!move) {
-				const emptyCells: { row: number; col: number }[] = []
-				for (let r = 0; r < fieldSize; r++) {
-					for (let c = 0; c < fieldSize; c++) {
-						if (board[r][c].symbol === '') {
-							emptyCells.push({ row: r, col: c })
-						}
-					}
-				}
-				if (emptyCells.length === 0) {
-					console.error('No valid moves available on the board')
-					return null
-				}
-				move = emptyCells[Math.floor(Math.random() * emptyCells.length)]
-				console.log('AI used fallback random move:', move)
+				const emptyCells = getEmptyCells()
+				if (emptyCells.length === 0) return null
+				move = pickRandom(emptyCells)
 			}
 
 			await ctx.runMutation(api.ai.ai_controller.recordAIMove, {
@@ -106,23 +105,11 @@ Choose an empty cell ('.') and make the best strategic move for '${aiSymbol}'.`
 			})
 
 			return move
-		} catch (error) {
-			console.error('Error generating AI move, falling back to random:', error)
-
-			// On any API error (quota, network, etc.) — fall back to a random empty cell
-			// so the game never gets permanently stuck
-			const emptyCells: { row: number; col: number }[] = []
-			for (let r = 0; r < fieldSize; r++) {
-				for (let c = 0; c < fieldSize; c++) {
-					if (board[r][c].symbol === '') {
-						emptyCells.push({ row: r, col: c })
-					}
-				}
-			}
+		} catch {
+			const emptyCells = getEmptyCells()
 			if (emptyCells.length === 0) return null
 
-			const fallback = emptyCells[Math.floor(Math.random() * emptyCells.length)]
-			console.log('AI fallback random move:', fallback)
+			const fallback = pickRandom(emptyCells)
 
 			await ctx.runMutation(api.ai.ai_controller.recordAIMove, {
 				gameId,

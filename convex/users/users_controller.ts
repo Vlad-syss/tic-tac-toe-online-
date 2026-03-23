@@ -71,20 +71,7 @@ export const getUserById = query({
 		userId: v.id('users'),
 	},
 	handler: async (ctx, args) => {
-		if (args.userId === undefined) {
-			return null
-		}
-
-		const users = await ctx.db
-			.query('users')
-			.filter(q => q.eq(q.field('_id'), args.userId))
-			.collect()
-
-		if (users.length === 0) {
-			return null
-		}
-
-		return users[0]
+		return await ctx.db.get(args.userId)
 	},
 })
 
