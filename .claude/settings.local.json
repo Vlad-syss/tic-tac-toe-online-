@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp src/pages/Home.tsx src/pages/home/HomePage.tsx)",
+      "Bash(cp src/pages/game/AIGame.tsx src/pages/game/AIGamePage.tsx)",
+      "Bash(cp src/pages/game/OnlineGame.tsx src/pages/game/OnlineGamePage.tsx)",
+      "Bash(cp src/pages/game/1v1v1v1Game.tsx src/pages/game/FourPlayerGamePage.tsx)",
+      "Bash(cp src/pages/game/GamePage.tsx src/pages/game/GameLayout.tsx)",
+      "Bash(cp src/pages/login/Login.tsx src/pages/login/LoginPage.tsx)",
+      "Bash(cp src/pages/login/Auth.layout.tsx src/pages/login/AuthLayout.tsx)",
+      "Bash(npx vite:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
