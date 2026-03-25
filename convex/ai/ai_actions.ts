@@ -5,10 +5,6 @@ import { v } from 'convex/values'
 import { api } from '../_generated/api'
 import { action } from '../_generated/server'
 
-console.log('Gemini API Key:', process.env.VITE_GEMINI_APIKEY)
-if (!process.env.VITE_GEMINI_APIKEY) {
-	console.error('Gemini API Key is missing!')
-}
 const client = new GoogleGenerativeAI(process.env.VITE_GEMINI_APIKEY as string)
 const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
@@ -32,10 +28,29 @@ export const generateAIMove = action({
 		fieldSize: v.number(),
 		gameId: v.id('games'),
 		playerId: v.id('users'),
+		aiSymbol: v.union(
+			v.literal('X'),
+			v.literal('O'),
+			v.literal('Square'),
+			v.literal('Triangle')
+		),
 	},
+	handler: async (ctx, { board, fieldSize, gameId, playerId, aiSymbol }) => {
+		const getEmptyCells = () => {
+			const cells: { row: number; col: number }[] = []
+			for (let r = 0; r < fieldSize; r++) {
+				for (let c = 0; c < fieldSize; c++) {
+					if (board[r]?.[c]?.symbol === '') {
+						cells.push({ row: r, col: c })
+					}
+				}
+			}
+			return cells
+		}
 
-	handler: async (ctx, { board, fieldSize, gameId, playerId }) => {
-		// Типізована retry-функція
+		const pickRandom = (cells: { row: number; col: number }[]) =>
+			cells[Math.floor(Math.random() * cells.length)]!
+
 		async function tryGenerateAIMove(
 			prompt: string,
 			retries = 3,
@@ -47,101 +62,87 @@ export const generateAIMove = action({
 					return result.response.text()
 				} catch (error: unknown) {
 					console.error(`AI generation attempt ${attempt} failed:`, error)
-
-					if (attempt === retries) {
-						throw error
-					}
-
-					const err = error as any
-					if (err.status === 503 || err.statusText === 'Service Unavailable') {
+					if (attempt === retries) throw error
+					const err = error as { status?: number }
+					if (err.status === 503) {
 						await new Promise(resolve => setTimeout(resolve, delayMs))
 					} else {
 						throw error
 					}
 				}
 			}
-			throw new Error('Unhandled AI error') // теоретично недосяжно
+			throw new Error('Unhandled AI error')
 		}
 
 		try {
-			const game = await ctx.runQuery(api.games.games_controller.getGame, {
-				gameId,
-			})
-			if (!game) throw new Error('there is no game')
+			const humanSymbol = aiSymbol === 'X' ? 'O' : 'X'
 
 			const boardString = board
-				.map(row => row.map(cell => cell.symbol || ' ').join('|'))
+				.map(row => row.map(cell => cell.symbol || '.').join('|'))
 				.join('\n')
 
-			const prompt = `
-You are playing a tic-tac-toe game on a ${fieldSize}x${fieldSize} board.
-You are playing as 'O' and your opponent is 'X'.
-Current board state:
+			const winLength = fieldSize <= 3 ? 3 : fieldSize <= 5 ? 4 : 6
+
+		const prompt = `You are playing tic-tac-toe on a ${fieldSize}x${fieldSize} board.
+You are '${aiSymbol}'. Your opponent is '${humanSymbol}'.
+Empty cells are shown as '.'.
+
+Board (0-indexed rows top-to-bottom, columns left-to-right):
 ${boardString}
 
-Analyze the board and provide the best move as a JSON object with row and column indices (0-based).
-Only return the JSON object in this format: {"row": number, "col": number}
-Make sure the move is valid (the cell is empty).
-`
+Win condition: get ${winLength} in a row (horizontally, vertically, or diagonally).
+
+Respond with ONLY valid JSON (no other text): {"row": number, "col": number}
+Choose an empty cell ('.') and make the best strategic move for '${aiSymbol}'.`
 
 			const response = await tryGenerateAIMove(prompt)
 
-			let move
+			let move: { row: number; col: number } | null = null
 			try {
-				const jsonMatch = response?.match(/\{[\s\S]*?\}/)
+				const jsonMatch = response.match(/\{\s*"row"\s*:\s*\d+\s*,\s*"col"\s*:\s*\d+\s*\}/)
 				if (jsonMatch) {
-					move = JSON.parse(jsonMatch[0])
-				} else {
-					throw new Error('Could not find JSON in response')
-				}
-			} catch (parseError) {
-				console.error('Failed to parse AI response:', response, parseError)
-				throw new Error('Invalid AI response format')
-			}
-
-			if (
-				typeof move.row !== 'number' ||
-				typeof move.col !== 'number' ||
-				move.row < 0 ||
-				move.row >= fieldSize ||
-				move.col < 0 ||
-				move.col >= fieldSize
-			) {
-				throw new Error('AI returned invalid move coordinates')
-			}
-
-			if (board[move.row][move.col].symbol !== '') {
-				const emptyCells: { row: number; col: number }[] = []
-				for (let r = 0; r < fieldSize; r++) {
-					for (let c = 0; c < fieldSize; c++) {
-						if (board[r][c].symbol === '') {
-							emptyCells.push({ row: r, col: c })
-						}
+					const parsed = JSON.parse(jsonMatch[0])
+					if (
+						typeof parsed.row === 'number' &&
+						typeof parsed.col === 'number' &&
+						parsed.row >= 0 && parsed.row < fieldSize &&
+						parsed.col >= 0 && parsed.col < fieldSize &&
+						board[parsed.row]?.[parsed.col]?.symbol === ''
+					) {
+						move = parsed
 					}
 				}
-
-				if (emptyCells.length === 0) {
-					throw new Error('No valid moves available')
-				}
-
-				move = emptyCells[Math.floor(Math.random() * emptyCells.length)]
+			} catch {
 			}
 
-			const playerIndex = game.userIds.indexOf(playerId)
-			const symbol = game.userSymbols[game.userIds[playerIndex]]
+			if (!move) {
+				const emptyCells = getEmptyCells()
+				if (emptyCells.length === 0) return null
+				move = pickRandom(emptyCells)
+			}
 
 			await ctx.runMutation(api.ai.ai_controller.recordAIMove, {
 				gameId,
 				row: move.row,
 				col: move.col,
-				symbol,
 				playerId,
 			})
 
 			return move
-		} catch (error) {
-			console.error('Error generating AI move:', error)
-			return null
+		} catch {
+			const emptyCells = getEmptyCells()
+			if (emptyCells.length === 0) return null
+
+			const fallback = pickRandom(emptyCells)
+
+			await ctx.runMutation(api.ai.ai_controller.recordAIMove, {
+				gameId,
+				row: fallback.row,
+				col: fallback.col,
+				playerId,
+			})
+
+			return fallback
 		}
 	},
 })

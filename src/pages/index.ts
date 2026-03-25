@@ -1,5 +1,0 @@
-export { AuthenticationGuard } from './AuthenticationGuard'
-export { Home } from './Home'
-export { GamePage } from './game/GamePage'
-export { AuthLayout } from './login/Auth.layout'
-export { ProfilePage } from './profile/ProfilePage'

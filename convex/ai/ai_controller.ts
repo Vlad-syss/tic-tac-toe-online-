@@ -1,69 +1,88 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { v } from 'convex/values'
-import { api } from '../_generated/api' // Import api
-import { Doc, Id } from '../_generated/dataModel'
-import { mutation } from '../_generated/server'
-import { checkWinCondition, isBoardFull } from '../games/games_controller'
+import { api } from '../_generated/api'
+import { Id } from '../_generated/dataModel'
+import { mutation, query } from '../_generated/server'
+import { calculateElo, calculateEloDraw } from '../utils/elo'
+import { checkWinCondition, createEmptyBoard, isBoardFull } from '../utils/gameLogic'
 
-const client = new GoogleGenerativeAI(process.env.VITE_GEMINI_APIKEY as string)
-const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' })
+const AI_SENTINEL_EMAIL = 'ai-player@system'
+const AI_AVATAR_URL =
+	'https://img.freepik.com/free-vector/cute-robot-wearing-hat-flying-cartoon-vector-icon-illustration-science-technology-icon-isolated_138676-5186.jpg?t=st=1742921694~exp=1742925294~hmac=eafbb3be7fdbe041f936c7cd5d0aaf912d20abe63cd868360a6b6dcb34b430d6&w=740'
 
 export const createGameWithAI = mutation({
 	args: { userId: v.id('users'), fieldSize: v.number() },
 	handler: async (ctx, { userId, fieldSize }) => {
-		const aiPlayer = await ctx.db.insert('users', {
-			name: 'AI Player',
-			onlineRating: 9999,
-			offlineRating: 9999,
-			totalGamesPlayed: 0,
-			highestWinStreak: 0,
-			totalWins: 0,
-			avatarUrl:
-				'https://img.freepik.com/free-vector/cute-robot-wearing-hat-flying-cartoon-vector-icon-illustration-science-technology-icon-isolated_138676-5186.jpg?t=st=1742921694~exp=1742925294~hmac=eafbb3be7fdbe041f936c7cd5d0aaf912d20abe63cd868360a6b6dcb34b430d6&w=740',
-		})
-		const symbols = ['X', 'O']
-		const userSymbol = symbols[Math.floor(Math.random() * symbols.length)]
-		const aiSymbol = userSymbol === 'X' ? 'O' : 'X'
-		const board = Array.from({ length: fieldSize }, (_, rowIndex) =>
-			Array.from({ length: fieldSize }, (_, colIndex) => ({
-				symbol: '' as 'X' | 'O' | 'Square' | 'Triangle' | '',
-				row: rowIndex,
-				col: colIndex,
-			}))
-		)
-		const userSymbols: Record<
-			Id<'users'>,
-			'X' | 'O' | 'Square' | 'Triangle'
-		> = {
-			[userId as Id<'users'>]: userSymbol as 'X' | 'O' | 'Square' | 'Triangle',
-			[aiPlayer as Id<'users'>]: aiSymbol as 'X' | 'O' | 'Square' | 'Triangle',
+		let aiUser = await ctx.db
+			.query('users')
+			.withIndex('by_email', q => q.eq('email', AI_SENTINEL_EMAIL))
+			.unique()
+
+		if (!aiUser) {
+			const aiId = await ctx.db.insert('users', {
+				name: 'AI Player',
+				email: AI_SENTINEL_EMAIL,
+				isAI: true,
+				onlineRating: 9999,
+				offlineRating: 9999,
+				totalGamesPlayed: 0,
+				highestWinStreak: 0,
+				currentWinStreak: 0,
+				totalWins: 0,
+				avatarUrl: AI_AVATAR_URL,
+			})
+			aiUser = (await ctx.db.get(aiId))!
 		}
-		const gameResult = await ctx.db.insert('games', {
-			userIds: [userId, aiPlayer],
+
+		const aiPlayerId = aiUser._id
+
+		const userSymbol: 'X' | 'O' = Math.random() < 0.5 ? 'X' : 'O'
+		const aiSymbol: 'X' | 'O' = userSymbol === 'X' ? 'O' : 'X'
+
+		const board = createEmptyBoard(fieldSize)
+
+		const userSymbols: Record<string, 'X' | 'O' | 'Square' | 'Triangle'> = {
+			[userId]: userSymbol,
+			[aiPlayerId]: aiSymbol,
+		}
+
+		const firstTurn: Id<'users'> = userSymbol === 'X' ? userId : aiPlayerId
+		const now = new Date().toISOString()
+
+		const gameId = await ctx.db.insert('games', {
+			userIds: [userId, aiPlayerId],
 			userSymbols,
 			gameStatus: 'in_progress',
 			gameMode: 'AI',
 			fieldSize,
 			isDraw: false,
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString(),
+			createdAt: now,
+			updatedAt: now,
 			board,
-			currentTurn: userSymbol === 'X' ? userId : aiPlayer,
-			moveMadeAt: new Date().toISOString(),
+			currentTurn: firstTurn,
+			moveMadeAt: now,
 		})
-		const game = await ctx.db.get(gameResult)
 
-		if (aiSymbol === 'X' && game) {
-			// Перевіряємо, чи AI починає гру
+		if (aiSymbol === 'X') {
 			await ctx.scheduler.runAfter(500, api.ai.ai_actions.generateAIMove, {
-				board: game.board,
-				fieldSize: game.fieldSize,
-				gameId: game._id,
-				playerId: aiPlayer,
+				board,
+				fieldSize,
+				gameId,
+				playerId: aiPlayerId,
+				aiSymbol,
 			})
 		}
 
-		return game
+		return await ctx.db.get(gameId)
+	},
+})
+
+export const getAIPlayerId = query({
+	args: { gameId: v.id('games') },
+	handler: async (ctx, { gameId }) => {
+		const game = await ctx.db.get(gameId)
+		if (!game || game.gameMode !== 'AI') return null
+		const aiId = game.userIds[1]
+		return aiId ?? null
 	},
 })
 
@@ -72,106 +91,77 @@ export const recordAIMove = mutation({
 		gameId: v.id('games'),
 		row: v.number(),
 		col: v.number(),
-		symbol: v.optional(
-			v.union(
-				v.literal('X'),
-				v.literal('O'),
-				v.literal('Square'),
-				v.literal('Triangle')
-			)
-		),
-		playerId: v.optional(v.id('users')),
+		playerId: v.id('users'),
 	},
-	handler: async (ctx, { gameId, row, col, symbol, playerId }) => {
+	handler: async (ctx, { gameId, row, col, playerId }) => {
 		const game = await ctx.db.get(gameId)
-		if (!game) {
-			console.error('Game not found.')
-			return { success: false }
+		if (!game) return { success: false }
+
+		if (game.gameStatus !== 'in_progress') {
+			return { success: false, reason: 'game_not_active' }
 		}
 
-		// Оновлюємо дошку: ставимо символ у вказану клітинку
+		if (game.board[row]?.[col]?.symbol !== '') {
+			return { success: false, reason: 'cell_occupied' }
+		}
+
+		const aiSymbol = game.userSymbols[playerId]
+		if (!aiSymbol) return { success: false }
+
 		const newBoard = game.board.map((rowArr, rowIndex) =>
 			rowArr.map((cell, colIndex) =>
 				rowIndex === row && colIndex === col
-					? { ...cell, symbol: symbol ?? cell.symbol }
+					? { ...cell, symbol: aiSymbol }
 					: cell
 			)
 		)
 
-		let isWin = false
-		let isDraw = false
-		let nextPlayerId: Id<'users'> | undefined
+		const isWin = checkWinCondition(newBoard, aiSymbol, game.fieldSize)
+		const isDraw = !isWin && isBoardFull(newBoard)
 
-		console.log(symbol, playerId)
+		const humanId = game.userIds.find(id => id !== playerId)
 
-		if (symbol && playerId) {
-			isWin = checkWinCondition(newBoard, symbol, game.fieldSize)
-			isDraw = !isWin && isBoardFull(newBoard)
-
-			const updates: Partial<Doc<'games'>> = {
-				board: newBoard,
-				updatedAt: new Date().toISOString(),
-				moveMadeAt: new Date().toISOString(),
-			}
-
-			// Змінюємо статус гри, якщо потрібно
-			if (game.gameStatus === 'waiting') {
-				updates.gameStatus = 'in_progress'
-			}
-
-			console.log(isWin, isDraw)
-
-			if (isWin) {
-				updates.gameStatus = 'lost'
-				updates.isDraw = false
-			} else if (isDraw) {
-				updates.gameStatus = 'completed'
-				updates.isDraw = true
-			} else {
-				const playerIndex = game.userIds.indexOf(playerId)
-				const nextPlayerIndex = (playerIndex + 1) % game.userIds.length
-				nextPlayerId = game.userIds[nextPlayerIndex]
-				updates.currentTurn = nextPlayerId
-			}
-
-			await ctx.db.patch(gameId, updates)
-
-			// Якщо гра завершена, оновлюємо статистику гравця
-			if (playerId && (isWin || isDraw)) {
-				const user = await ctx.db.get(playerId)
-				if (!user) throw new Error('User not found')
-				await ctx.db.patch(playerId, {
-					totalGamesPlayed: (user.totalGamesPlayed || 0) + 1,
-				})
-			}
-		} else {
-			// Якщо символ або playerId відсутні, просто оновлюємо дошку без зміни статусу і ходу
+		if (isWin || isDraw) {
 			await ctx.db.patch(gameId, {
 				board: newBoard,
+				gameStatus: isWin ? 'lost' : 'completed',
+				winnerId: isWin ? (playerId as Id<'users'>) : undefined,
+				isDraw: isDraw,
 				updatedAt: new Date().toISOString(),
+				moveMadeAt: new Date().toISOString(),
 			})
+
+			if (humanId) {
+				const humanPlayer = await ctx.db.get(humanId)
+				if (humanPlayer && !humanPlayer.isAI) {
+					const humanRating = humanPlayer.offlineRating ?? 1000
+					if (isWin) {
+						const { newLoserRating } = calculateElo(1200, humanRating)
+						await ctx.db.patch(humanPlayer._id, {
+							totalGamesPlayed: (humanPlayer.totalGamesPlayed || 0) + 1,
+							currentWinStreak: 0,
+							offlineRating: newLoserRating,
+						})
+					} else {
+						const { newRating1 } = calculateEloDraw(humanRating, 1200)
+						await ctx.db.patch(humanPlayer._id, {
+							totalGamesPlayed: (humanPlayer.totalGamesPlayed || 0) + 1,
+							currentWinStreak: 0,
+							offlineRating: newRating1,
+						})
+					}
+				}
+			}
+
+			return { success: true, isWin, isDraw }
 		}
 
-		return {
-			success: true,
-			isWin,
-			isDraw,
-		}
-	},
-})
-
-export const deleteAIUser = mutation({
-	args: {
-		aiUserId: v.id('users'),
-	},
-	handler: async (ctx, { aiUserId }) => {
-		const aiUser = await ctx.db.get(aiUserId)
-		if (!aiUser) {
-			console.error('AI user not found.')
-			return null
-		}
-
-		await ctx.db.delete(aiUserId)
+		await ctx.db.patch(gameId, {
+			board: newBoard,
+			updatedAt: new Date().toISOString(),
+			moveMadeAt: new Date().toISOString(),
+			currentTurn: humanId as Id<'users'>,
+		})
 
 		return { success: true }
 	},
@@ -181,22 +171,27 @@ export const aiMakeMove = mutation({
 	args: { gameId: v.id('games'), playerId: v.id('users') },
 	handler: async (ctx, { gameId, playerId }) => {
 		const game = await ctx.db.get(gameId)
+		if (!game) return null
 
-		if (!game) {
-			console.error('Game not found.')
-			return null
+		if (game.gameStatus !== 'in_progress') {
+			return { skipped: true, reason: 'game_not_active' }
 		}
+
 		if (game.currentTurn !== playerId) {
-			console.log('AI turn is not now, skipping aiMakeMove')
 			return { skipped: true }
 		}
-		const board = game.board
-		ctx.scheduler.runAfter(500, api.ai.ai_actions.generateAIMove, {
-			board,
+
+		const aiSymbol = game.userSymbols[playerId]
+		if (!aiSymbol) return null
+
+		await ctx.scheduler.runAfter(500, api.ai.ai_actions.generateAIMove, {
+			board: game.board,
 			fieldSize: game.fieldSize,
 			gameId,
 			playerId,
+			aiSymbol,
 		})
+
 		return { scheduled: true }
 	},
 })

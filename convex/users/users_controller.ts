@@ -39,6 +39,7 @@ export const store = mutation({
 			offlineRating: 1000,
 			totalGamesPlayed: 0,
 			highestWinStreak: 0,
+			currentWinStreak: 0,
 			totalWins: 0,
 		})
 	},
@@ -70,20 +71,7 @@ export const getUserById = query({
 		userId: v.id('users'),
 	},
 	handler: async (ctx, args) => {
-		if (args.userId === undefined) {
-			return null
-		}
-
-		const users = await ctx.db
-			.query('users')
-			.filter(q => q.eq(q.field('_id'), args.userId))
-			.collect()
-
-		if (users.length === 0) {
-			return null
-		}
-
-		return users[0]
+		return await ctx.db.get(args.userId)
 	},
 })
 
@@ -124,6 +112,7 @@ export const updateUser = mutation({
 			offlineRating: number
 			totalGamesPlayed: number
 			highestWinStreak: number
+			currentWinStreak: number
 			avatarUrl?: string
 			totalWins: number
 		} = {
@@ -133,6 +122,7 @@ export const updateUser = mutation({
 			offlineRating: 1000,
 			totalGamesPlayed: 0,
 			highestWinStreak: 0,
+			currentWinStreak: 0,
 			totalWins: 0,
 		}
 

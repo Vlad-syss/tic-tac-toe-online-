@@ -43,7 +43,16 @@ export const gamesSchema = defineTable({
 			v.literal('Triangle')
 		)
 	),
-	moveMadeAt: v.string(),
+	eliminatedPlayers: v.optional(
+		v.array(
+			v.object({
+				userId: v.id('users'),
+				position: v.number(),
+				eloChange: v.number(),
+			})
+		)
+	),
+	moveMadeAt: v.optional(v.string()),
 })
 	.index('by_status', ['gameStatus'])
 	.index('by_invite_code', ['inviteCode'])

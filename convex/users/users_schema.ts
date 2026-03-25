@@ -9,6 +9,10 @@ export const usersSchema = defineTable({
 	offlineRating: v.number(),
 	totalGamesPlayed: v.number(),
 	highestWinStreak: v.number(),
+	currentWinStreak: v.optional(v.number()),
 	totalWins: v.number(),
 	isAI: v.optional(v.boolean()),
-}).index('by_email', ['email'])
+})
+	.index('by_email', ['email'])
+	.index('by_online_rating', ['onlineRating'])
+	.index('by_offline_rating', ['offlineRating'])
