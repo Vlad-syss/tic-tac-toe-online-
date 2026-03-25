@@ -44,6 +44,14 @@ export const useSoundEffects = () => {
 		setTimeout(() => createOscillator(ctx, 784, 0.3, 'sine'), 300)
 	}, [soundEnabled, getCtx])
 
+	const playLose = useCallback(() => {
+		if (!soundEnabled) return
+		const ctx = getCtx()
+		createOscillator(ctx, 494, 0.15, 'sine')
+		setTimeout(() => createOscillator(ctx, 370, 0.15, 'sine'), 150)
+		setTimeout(() => createOscillator(ctx, 294, 0.4, 'sine'), 300)
+	}, [soundEnabled, getCtx])
+
 	const playDraw = useCallback(() => {
 		if (!soundEnabled) return
 		const ctx = getCtx()
@@ -57,5 +65,5 @@ export const useSoundEffects = () => {
 		createOscillator(ctx, 800, 0.05, 'square')
 	}, [soundEnabled, getCtx])
 
-	return { playMove, playWin, playDraw, playClick }
+	return { playMove, playWin, playLose, playDraw, playClick }
 }

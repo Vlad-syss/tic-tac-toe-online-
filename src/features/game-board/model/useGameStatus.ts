@@ -15,7 +15,7 @@ export const useGameStatus = ({
 	isAI,
 }: UseGameStatusProps) => {
 	const [statusMessage, setStatusMessage] = useState('')
-	const { playWin, playDraw } = useSoundEffects()
+	const { playWin, playLose, playDraw } = useSoundEffects()
 	const playedRef = useRef(false)
 
 	useEffect(() => {
@@ -30,10 +30,15 @@ export const useGameStatus = ({
 
 			if (!playedRef.current) {
 				playedRef.current = true
-				toast.success(message, {
-					style: { background: '#4CAF50', color: '#fff' },
+				const isLoss = winner === 'Opponent' || winner === 'AI'
+				toast(message, {
+					style: isLoss
+						? { background: '#f44336', color: '#fff' }
+						: { background: '#4CAF50', color: '#fff' },
+					icon: isLoss ? '😞' : '🎉',
 				})
 				if (winner === 'Draw') playDraw()
+				else if (isLoss) playLose()
 				else playWin()
 			}
 		} else {
@@ -52,7 +57,7 @@ export const useGameStatus = ({
 				setStatusMessage(message)
 			}
 		}
-	}, [gameState, checkWinner, isAI, playWin, playDraw])
+	}, [gameState, checkWinner, isAI, playWin, playLose, playDraw])
 
 	return statusMessage
 }
