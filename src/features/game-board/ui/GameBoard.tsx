@@ -1,6 +1,6 @@
 import { Circle, Square, Triangle, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { FC, JSX } from 'react'
+import { FC, JSX, useEffect, useState } from 'react'
 import { Cell } from '@/entities/game'
 import { useSoundEffects } from '@/features/sound'
 
@@ -10,21 +10,31 @@ interface GameBoardProps {
 }
 
 const SYMBOL_COMPONENTS: Record<string, JSX.Element> = {
-	O: <Circle className='w-10 h-10 text-sky-500 drop-shadow-lg' />,
-	Square: <Square className='w-10 h-10 text-violet-500 drop-shadow-lg' />,
-	Triangle: <Triangle className='w-10 h-10 text-amber-500 drop-shadow-lg' />,
-	X: <X className='w-10 h-10 text-rose-500 drop-shadow-lg' />,
+	O: <Circle className='w-6 h-6 sm:w-10 sm:h-10 text-sky-500 drop-shadow-lg' />,
+	Square: <Square className='w-6 h-6 sm:w-10 sm:h-10 text-violet-500 drop-shadow-lg' />,
+	Triangle: <Triangle className='w-6 h-6 sm:w-10 sm:h-10 text-amber-500 drop-shadow-lg' />,
+	X: <X className='w-6 h-6 sm:w-10 sm:h-10 text-rose-500 drop-shadow-lg' />,
 }
 
 export const GameBoard: FC<GameBoardProps> = ({ board, onClick }) => {
 	const { playMove } = useSoundEffects()
 	const gridSize = board.length
-	const cellSize = gridSize > 5 ? 'minmax(40px, 80px)' : 'minmax(60px, 120px)'
+
+	const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+	useEffect(() => {
+		const onResize = () => setIsMobile(window.innerWidth < 640)
+		window.addEventListener('resize', onResize)
+		return () => window.removeEventListener('resize', onResize)
+	}, [])
+
+	const cellSize = isMobile
+		? (gridSize > 5 ? 'minmax(28px, 40px)' : 'minmax(40px, 70px)')
+		: (gridSize > 5 ? 'minmax(40px, 80px)' : 'minmax(60px, 120px)')
 
 	return (
-		<div className='p-4 mb-4 border-b border-slate-200 dark:border-slate-800'>
+		<div className='p-2 sm:p-4 mb-2 sm:mb-4 border-b border-slate-200 dark:border-slate-800'>
 			<div
-				className='grid gap-1 py-2 justify-center w-full max-w-[1000px] mx-auto rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600 shadow-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700'
+				className='grid gap-0.5 sm:gap-1 py-1 sm:py-2 justify-center w-full max-w-[1000px] mx-auto rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600 shadow-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700'
 				style={{
 					gridTemplateColumns: `repeat(${gridSize}, ${cellSize})`,
 					gridTemplateRows: `repeat(${gridSize}, ${cellSize})`,

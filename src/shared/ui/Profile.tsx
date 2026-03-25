@@ -69,10 +69,11 @@ export const Profile = ({
 				>
 					<img
 						src={user.avatarUrl?.split('=')[0] || './default-avatar.png'}
-						width={50}
-						height={50}
 						alt='profile_img'
-						className='rounded border border-slate-300 dark:border-slate-600'
+						className={cn(
+							'rounded border border-slate-300 dark:border-slate-600',
+							isGame ? 'w-9 h-9 sm:w-[50px] sm:h-[50px]' : 'w-[50px] h-[50px]'
+						)}
 					/>
 					{userSymbol && (
 						<div
@@ -98,17 +99,15 @@ export const Profile = ({
 				</a>
 
 				<div className='flex flex-col gap-0.5'>
-					<h4 className='text-sm truncate'>{user.name}</h4>
+					<h4 className={cn('truncate', isGame ? 'text-xs sm:text-sm max-w-[80px] sm:max-w-none' : 'text-sm')}>{user.name}</h4>
 					{!isAi && isGame && (
-						<p className='text-slate-500 dark:text-slate-400 text-xs leading-2'>
-							Rating online:{' '}
-							<span className='font-semibold'>{user.onlineRating}</span>
+						<p className='text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs leading-2'>
+							Rating: <span className='font-semibold'>{user.onlineRating}</span>
 						</p>
 					)}
 					{isAi && isGame && (
-						<p className='text-slate-500 dark:text-slate-400 text-xs leading-2'>
-							Rating offline:{' '}
-							<span className='font-semibold'>{user.offlineRating}</span>
+						<p className='text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs leading-2'>
+							Rating: <span className='font-semibold'>{user.offlineRating}</span>
 						</p>
 					)}
 					{!isGame && (

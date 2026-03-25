@@ -28,7 +28,7 @@ const StatusMessage = ({ message }: { message: string }) => (
 	<AnimatePresence mode='wait'>
 		<motion.div
 			key={message}
-			className='text-xl mb-4 text-slate-600 dark:text-slate-300'
+			className='text-sm sm:text-xl mb-2 sm:mb-4 text-slate-600 dark:text-slate-300'
 			initial={{ opacity: 0, y: -10 }}
 			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0, y: 10 }}
@@ -378,9 +378,9 @@ export const TicTacToeGameComponent = ({
 				: 'Tic-Tac-Toe 1v1v1v1'
 
 	return (
-		<div className='flex flex-col items-center justify-center p-3 sm:p-5 lg:p-8'>
+		<div className='flex flex-col items-center justify-center p-2 sm:p-5 lg:p-8'>
 			<Toaster position='top-center' />
-			<h2 className='text-xl sm:text-2xl lg:text-3xl font-semibold mb-6 text-slate-900 dark:text-white'>{title}</h2>
+			<h2 className='text-base sm:text-2xl lg:text-3xl font-semibold mb-3 sm:mb-6 text-slate-900 dark:text-white'>{title}</h2>
 
 			{isJoining && (
 				<>

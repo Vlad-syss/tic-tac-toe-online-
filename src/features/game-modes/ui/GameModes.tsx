@@ -1,17 +1,35 @@
 import { clsx as cn } from 'clsx'
 import { Circle, Computer, Gamepad2, Square, Triangle, X } from 'lucide-react'
 import { useNavigate } from 'react-router'
+import { useEffect, useState } from 'react'
 import { Button } from '@/shared/ui/Button'
 import { useGameApi } from '@/features/game-board'
 import { useUser } from '@/features/auth'
 import { generateInviteCode } from '@/shared/lib/inviteCode'
 import { useGameSettingsStore } from '@/shared/store/useGameSettingsStore'
 
+const useIsMobile = () => {
+	const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+	useEffect(() => {
+		const onResize = () => setIsMobile(window.innerWidth < 640)
+		window.addEventListener('resize', onResize)
+		return () => window.removeEventListener('resize', onResize)
+	}, [])
+	return isMobile
+}
+
 export const GameModes = () => {
 	const { user } = useUser()
 	const navigate = useNavigate()
 	const { boardSize, setBoardSize } = useGameSettingsStore()
 	const { startGameWithAI, startNewGame } = useGameApi(null)
+	const isMobile = useIsMobile()
+
+	useEffect(() => {
+		if (isMobile && boardSize === 10) {
+			setBoardSize(5)
+		}
+	}, [isMobile, boardSize, setBoardSize])
 
 	const startGame = async (mode: string) => {
 		if (user === undefined) return
@@ -83,18 +101,20 @@ export const GameModes = () => {
 				>
 					5x5
 				</Button>
-				<Button
-					variant='ghost'
-					size='custom'
-					className={cn(
-						'px-4 py-2 rounded-lg text-white hover:bg-indigo-600',
-						boardSize === 10 && 'bg-indigo-600',
-						boardSize !== 10 && 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-					)}
-					onClick={() => setBoardSize(10)}
-				>
-					10x10
-				</Button>
+				{!isMobile && (
+					<Button
+						variant='ghost'
+						size='custom'
+						className={cn(
+							'px-4 py-2 rounded-lg text-white hover:bg-indigo-600',
+							boardSize === 10 && 'bg-indigo-600',
+							boardSize !== 10 && 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+						)}
+						onClick={() => setBoardSize(10)}
+					>
+						10x10
+					</Button>
+				)}
 			</div>
 
 			<div className='space-y-4 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full'>
