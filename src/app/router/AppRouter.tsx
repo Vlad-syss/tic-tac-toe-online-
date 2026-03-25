@@ -10,12 +10,14 @@ import { OnevOnevOnevOneGame } from '@/pages/game/FourPlayerGamePage'
 import { AuthLayout } from '@/pages/login/AuthLayout'
 import { Login } from '@/pages/login/LoginPage'
 import { GameHistoryPage } from '@/pages/history/GameHistoryPage'
+import { HowToPlayPage } from '@/pages/how-to-play/HowToPlayPage'
 
 export const AppRouter = () => (
 	<Routes>
 		<Route element={<AuthenticationGuard />}>
 			<Route path='/' element={<Home />} />
 			<Route path='*' element={<Home />} />
+			<Route path='/how-to-play' element={<HowToPlayPage />} />
 			<Route path='/profile' element={<ProfilePage />} />
 			<Route path='/history' element={<GameHistoryPage />} />
 			<Route path='/leaderboard/:type' element={<LeaderboardPage />} />
