@@ -338,6 +338,7 @@ export const TicTacToeGameComponent = ({
 }: TicTacToeGameComponentProps) => {
 	const [gameId, setGameId] = useState<Id<'games'> | null>(null)
 	const [searchParams] = useSearchParams()
+	const navigate = useNavigate()
 	const size = searchParams.get('size')
 	const fieldSize = size ? parseInt(size, 10) : 3
 	const { user } = useUser()
