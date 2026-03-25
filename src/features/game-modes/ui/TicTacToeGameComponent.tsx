@@ -345,6 +345,7 @@ export const TicTacToeGameComponent = ({
 	const inviteCode = searchParams.get('invite')
 	const { joinGameByInvite } = useGameApi(gameId)
 	const [isJoining, setIsJoining] = useState(false)
+	const [joinFailed, setJoinFailed] = useState(false)
 	const isJoiningRef = useRef(false)
 
 	useEffect(() => {
@@ -353,22 +354,21 @@ export const TicTacToeGameComponent = ({
 			setGameId(urlGameId)
 			return
 		}
-		if (inviteCode && user && !isJoiningRef.current) {
+		if (inviteCode && user && !isJoiningRef.current && !joinFailed) {
 			isJoiningRef.current = true
 			setIsJoining(true)
 			joinGameByInvite(inviteCode, user._id as Id<'users'>)
 				.then(joinedGameId => {
 					if (joinedGameId) setGameId(joinedGameId as Id<'games'>)
+					setIsJoining(false)
 				})
 				.catch(() => {
 					toast.error('Failed to join game. The invite may be expired.')
-				})
-				.finally(() => {
-					isJoiningRef.current = false
+					setJoinFailed(true)
 					setIsJoining(false)
 				})
 		}
-	}, [searchParams, user, inviteCode, joinGameByInvite])
+	}, [searchParams, user, inviteCode, joinGameByInvite, joinFailed])
 
 	const title =
 		gameMode === 'AI'
@@ -387,6 +387,20 @@ export const TicTacToeGameComponent = ({
 					<ProfileBoardSkeleton />
 					<GameBoardSkeleton size={fieldSize} />
 				</>
+			)}
+
+			{joinFailed && (
+				<div className='text-center'>
+					<p className='text-red-500 dark:text-red-400 font-medium mb-4'>
+						This invite link is no longer valid. The game may have already started or expired.
+					</p>
+					<Button
+						onClick={() => navigate('/')}
+						className='bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded'
+					>
+						Back to Home
+					</Button>
+				</div>
 			)}
 
 			{!isJoining && gameMode === 'AI' && (
