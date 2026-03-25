@@ -81,14 +81,16 @@ export const generateAIMove = action({
 				.map(row => row.map(cell => cell.symbol || '.').join('|'))
 				.join('\n')
 
-			const prompt = `You are playing tic-tac-toe on a ${fieldSize}x${fieldSize} board.
+			const winLength = fieldSize <= 3 ? 3 : fieldSize <= 5 ? 4 : 6
+
+		const prompt = `You are playing tic-tac-toe on a ${fieldSize}x${fieldSize} board.
 You are '${aiSymbol}'. Your opponent is '${humanSymbol}'.
 Empty cells are shown as '.'.
 
 Board (0-indexed rows top-to-bottom, columns left-to-right):
 ${boardString}
 
-Win condition: fill an entire row, column, or diagonal with your symbol.
+Win condition: get ${winLength} in a row (horizontally, vertically, or diagonally).
 
 Respond with ONLY valid JSON (no other text): {"row": number, "col": number}
 Choose an empty cell ('.') and make the best strategic move for '${aiSymbol}'.`

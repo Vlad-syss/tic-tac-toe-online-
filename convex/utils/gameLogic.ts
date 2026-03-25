@@ -15,23 +15,62 @@ export const createEmptyBoard = (fieldSize: number): BoardCell[][] =>
 		}))
 	)
 
+export const getWinLength = (fieldSize: number): number => {
+	if (fieldSize <= 3) return 3
+	if (fieldSize <= 5) return 4
+	return 6
+}
+
 export const checkWinCondition = (
 	board: BoardCell[][],
 	symbol: CellSymbol,
 	fieldSize: number
 ): boolean => {
-	for (let i = 0; i < fieldSize; i++) {
-		const row = board[i]
-		if (row && row.every(cell => cell.symbol === symbol)) return true
+	const winLength = getWinLength(fieldSize)
+
+	// Check rows
+	for (let r = 0; r < fieldSize; r++) {
+		for (let c = 0; c <= fieldSize - winLength; c++) {
+			let count = 0
+			for (let k = 0; k < winLength; k++) {
+				if (board[r]?.[c + k]?.symbol === symbol) count++
+			}
+			if (count === winLength) return true
+		}
 	}
 
-	for (let j = 0; j < fieldSize; j++) {
-		if (board.every(row => row[j]?.symbol === symbol)) return true
+	// Check columns
+	for (let c = 0; c < fieldSize; c++) {
+		for (let r = 0; r <= fieldSize - winLength; r++) {
+			let count = 0
+			for (let k = 0; k < winLength; k++) {
+				if (board[r + k]?.[c]?.symbol === symbol) count++
+			}
+			if (count === winLength) return true
+		}
 	}
 
-	if (board.every((row, i) => row[i]?.symbol === symbol)) return true
-	if (board.every((row, i) => row[fieldSize - 1 - i]?.symbol === symbol))
-		return true
+	// Check main diagonals (top-left to bottom-right)
+	for (let r = 0; r <= fieldSize - winLength; r++) {
+		for (let c = 0; c <= fieldSize - winLength; c++) {
+			let count = 0
+			for (let k = 0; k < winLength; k++) {
+				if (board[r + k]?.[c + k]?.symbol === symbol) count++
+			}
+			if (count === winLength) return true
+		}
+	}
+
+	// Check anti-diagonals (top-right to bottom-left)
+	for (let r = 0; r <= fieldSize - winLength; r++) {
+		for (let c = winLength - 1; c < fieldSize; c++) {
+			let count = 0
+			for (let k = 0; k < winLength; k++) {
+				if (board[r + k]?.[c - k]?.symbol === symbol) count++
+			}
+			if (count === winLength) return true
+		}
+	}
 
 	return false
 }
