@@ -473,6 +473,43 @@ export const skipMove = mutation({
 	},
 })
 
+export const getActiveGameForUser = query({
+	args: { userId: v.id('users') },
+	handler: async (ctx, { userId }) => {
+		const inProgress = await ctx.db
+			.query('games')
+			.withIndex('by_status', q => q.eq('gameStatus', 'in_progress'))
+			.collect()
+
+		const active = inProgress.find(g => g.userIds.includes(userId))
+		if (active) {
+			return {
+				_id: active._id,
+				gameMode: active.gameMode,
+				fieldSize: active.fieldSize,
+				inviteCode: active.inviteCode,
+			}
+		}
+
+		const waiting = await ctx.db
+			.query('games')
+			.withIndex('by_status', q => q.eq('gameStatus', 'waiting'))
+			.collect()
+
+		const waitingGame = waiting.find(g => g.userIds.includes(userId))
+		if (waitingGame) {
+			return {
+				_id: waitingGame._id,
+				gameMode: waitingGame.gameMode,
+				fieldSize: waitingGame.fieldSize,
+				inviteCode: waitingGame.inviteCode,
+			}
+		}
+
+		return null
+	},
+})
+
 export const getCompletedGamesForUser = query({
 	args: {
 		userId: v.id('users'),

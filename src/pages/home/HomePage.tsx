@@ -2,11 +2,13 @@ import { Link } from 'react-router'
 import { History } from 'lucide-react'
 import { GameModes } from '@/features/game-modes'
 import { Leaderboard } from '@/features/leaderboard'
+import { ActiveGameBanner } from '@/features/active-game'
 
 export function Home() {
 	return (
-		<div className='flex flex-col flex-[1_0_auto] items-center space-y-8 px-4 py-8'>
-			<h1 className='text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white'>Tic-Tac-Toe Arena</h1>
+		<div className='flex flex-col flex-[1_0_auto] items-center space-y-4 sm:space-y-8 px-3 sm:px-4 py-4 sm:py-8'>
+			<h1 className='text-2xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white'>Tic-Tac-Toe Arena</h1>
+			<ActiveGameBanner />
 			<div className='gap-4 grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] w-full'>
 				<GameModes />
 				<Leaderboard />
