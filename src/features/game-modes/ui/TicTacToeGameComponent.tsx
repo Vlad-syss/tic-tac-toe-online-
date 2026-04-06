@@ -50,7 +50,7 @@ const AIGameInner = ({
 		useAIGame(gameId, fieldSize)
 	const { user } = useUser()
 	const navigate = useNavigate()
-	const statusMessage = useGameStatus({ gameState, checkWinner, isAI: true })
+	const statusMessage = useGameStatus({ gameState, checkWinner, isAI: true, currentUserId: user?._id as Id<'users'> | null })
 
 	const startNewGameWrapper = async () => {
 		if (!user?._id) return
@@ -106,10 +106,10 @@ const OnlineGameInner = ({
 	fieldSize: number
 	inviteCode: string | null
 }) => {
+	const { user } = useUser()
 	const { gameState, isLoading, handleCellClick, checkWinner, timeLeft } =
 		useOnlineGame(gameId, fieldSize)
-	const statusMessage = useGameStatus({ gameState, checkWinner, isAI: false })
-	const { user } = useUser()
+	const statusMessage = useGameStatus({ gameState, checkWinner, isAI: false, currentUserId: user?._id as Id<'users'> | null })
 	const navigate = useNavigate()
 	const { startNewGame } = useGameApi(gameId)
 	const { boardSize } = useGameSettingsStore()
@@ -203,10 +203,10 @@ const FourPlayerGameInner = ({
 	fieldSize: number
 	inviteCode: string | null
 }) => {
+	const { user } = useUser()
 	const { gameState, isLoading, handleCellClick, checkWinner, timeLeft } =
 		useFourPlayerGame(gameId, fieldSize)
-	const statusMessage = useGameStatus({ gameState, checkWinner, isAI: false })
-	const { user } = useUser()
+	const statusMessage = useGameStatus({ gameState, checkWinner, isAI: false, currentUserId: user?._id as Id<'users'> | null })
 	const navigate = useNavigate()
 	const { startNewGame } = useGameApi(gameId)
 	const { boardSize } = useGameSettingsStore()

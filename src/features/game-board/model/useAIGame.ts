@@ -3,22 +3,21 @@ import toast from 'react-hot-toast'
 import { useGameApi } from './useGameApi'
 import { Id } from '../../../../convex/_generated/dataModel'
 import { checkWinner, createGameState, handleCellClick } from '@/shared/lib/gameUtils'
+import { useUser } from '@/features/auth'
 
 const TURN_SECONDS = 60
 
 export const useAIGame = (gameId: Id<'games'> | null, fieldSize: number) => {
-	const { startGameWithAI, makeMoves, getGame } = useGameApi(gameId)
+	const { startGameWithAI, makeMoves, getGame, skipMove } = useGameApi(gameId)
+	const { user } = useUser()
 
 	const gameState = useMemo(() => createGameState(getGame), [getGame])
 
 	const [isCreatingGame, setIsCreatingGame] = useState(false)
 	const [timeLeft, setTimeLeft] = useState(TURN_SECONDS)
 
-	const gameStateRef = useRef(gameState)
 	const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
-	const turnStartRef = useRef<number>(Date.now())
-
-	gameStateRef.current = gameState
+	const skipCalledRef = useRef(false)
 
 	useEffect(() => {
 		if (timerIntervalRef.current) {
@@ -28,28 +27,38 @@ export const useAIGame = (gameId: Id<'games'> | null, fieldSize: number) => {
 
 		if (!gameState || gameState.gameStatus !== 'in_progress') return
 
-		if (gameState.currentPlayerIndex !== 0) {
-			setTimeLeft(TURN_SECONDS)
-			return
+		skipCalledRef.current = false
+
+		const turnStart = gameState.moveMadeAt
+			? new Date(gameState.moveMadeAt).getTime()
+			: Date.now()
+
+		const calcRemaining = () => {
+			const elapsed = Math.floor((Date.now() - turnStart) / 1000)
+			return Math.max(0, TURN_SECONDS - elapsed)
 		}
 
-		turnStartRef.current = Date.now()
-		setTimeLeft(TURN_SECONDS)
+		setTimeLeft(calcRemaining())
+
+		// Only count down when it's the human player's turn
+		if (gameState.currentPlayerIndex !== 0) return
 
 		timerIntervalRef.current = setInterval(() => {
-			const elapsed = Math.floor((Date.now() - turnStartRef.current) / 1000)
-			const remaining = TURN_SECONDS - elapsed
+			const remaining = calcRemaining()
+			setTimeLeft(remaining)
 
 			if (remaining <= 0) {
 				clearInterval(timerIntervalRef.current!)
 				timerIntervalRef.current = null
-				setTimeLeft(0)
 
-				toast.error('Time ran out!', { style: { background: '#f44336', color: '#fff' } })
-				return
+				if (!skipCalledRef.current && gameId) {
+					skipCalledRef.current = true
+					toast.error('Time ran out! Turn skipped.', {
+						style: { background: '#f44336', color: '#fff' },
+					})
+					skipMove(gameId)
+				}
 			}
-
-			setTimeLeft(remaining)
 		}, 500)
 
 		return () => {
@@ -58,7 +67,7 @@ export const useAIGame = (gameId: Id<'games'> | null, fieldSize: number) => {
 				timerIntervalRef.current = null
 			}
 		}
-	}, [gameState?.currentTurn, gameState?.gameStatus])
+	}, [gameState?.currentTurn, gameState?.gameStatus, gameState?.moveMadeAt])
 
 	const startGame = useCallback(
 		async (userId: Id<'users'>) => {
@@ -90,7 +99,7 @@ export const useAIGame = (gameId: Id<'games'> | null, fieldSize: number) => {
 		isLoading: getGame === undefined || isCreatingGame,
 		startGame,
 		handleCellClick: handleCellClickWrapper,
-		checkWinner: () => checkWinner(gameState),
+		checkWinner: () => checkWinner(gameState, user?._id as Id<'users'> | null),
 		timeLeft,
 	}
 }
