@@ -13,6 +13,7 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 	)
 	const makeMoves = useMutation(api.games.games_controller.makeMove)
 	const aiMakeMove = useMutation(api.ai.ai_controller.aiMakeMove)
+	const skipMoveMutation = useMutation(api.games.games_controller.skipMove)
 
 	const [mutationLoading, setMutationLoading] = useState(false)
 
@@ -87,6 +88,14 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 		}
 	}
 
+	const skipMove = async (gameId: Id<'games'>) => {
+		try {
+			await skipMoveMutation({ gameId })
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Failed to skip move')
+		}
+	}
+
 	return {
 		createGameWithAI,
 		getGame,
@@ -95,6 +104,7 @@ export const useGameApi = (gameId: Id<'games'> | null) => {
 		makeMove,
 		startNewGame,
 		joinGameByInvite,
+		skipMove,
 		isLoading: getGame === undefined || mutationLoading,
 		makeMoves,
 	}

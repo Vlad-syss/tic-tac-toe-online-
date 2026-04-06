@@ -12,14 +12,14 @@ export const useFourPlayerGame = (
 	_fieldSize: number
 ) => {
 	const { user } = useUser()
-	const { makeMoves, getGame } = useGameApi(gameId)
+	const { makeMoves, getGame, skipMove } = useGameApi(gameId)
 
 	const gameState = useMemo(() => createGameState(getGame), [getGame])
 
 	const [timeLeft, setTimeLeft] = useState(TURN_SECONDS)
 
 	const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
-	const turnStartRef = useRef<number>(Date.now())
+	const skipCalledRef = useRef(false)
 
 	useEffect(() => {
 		if (timerIntervalRef.current) {
@@ -29,30 +29,36 @@ export const useFourPlayerGame = (
 
 		if (!gameState || gameState.gameStatus !== 'in_progress' || !user) return
 
-		const myId = user._id as Id<'users'>
-		if (gameState.currentTurn !== myId) {
-			setTimeLeft(TURN_SECONDS)
-			return
+		skipCalledRef.current = false
+
+		const turnStart = gameState.moveMadeAt
+			? new Date(gameState.moveMadeAt).getTime()
+			: Date.now()
+
+		const calcRemaining = () => {
+			const elapsed = Math.floor((Date.now() - turnStart) / 1000)
+			return Math.max(0, TURN_SECONDS - elapsed)
 		}
 
-		turnStartRef.current = Date.now()
-		setTimeLeft(TURN_SECONDS)
+		setTimeLeft(calcRemaining())
 
 		timerIntervalRef.current = setInterval(() => {
-			const elapsed = Math.floor((Date.now() - turnStartRef.current) / 1000)
-			const remaining = TURN_SECONDS - elapsed
+			const remaining = calcRemaining()
+			setTimeLeft(remaining)
 
 			if (remaining <= 0) {
 				clearInterval(timerIntervalRef.current!)
 				timerIntervalRef.current = null
-				setTimeLeft(0)
-				toast.error('Time ran out! Turn skipped.', {
-					style: { background: '#f44336', color: '#fff' },
-				})
-				return
-			}
 
-			setTimeLeft(remaining)
+				const myId = user._id as Id<'users'>
+				if (gameState.currentTurn === myId && !skipCalledRef.current && gameId) {
+					skipCalledRef.current = true
+					toast.error('Time ran out! Turn skipped.', {
+						style: { background: '#f44336', color: '#fff' },
+					})
+					skipMove(gameId)
+				}
+			}
 		}, 500)
 
 		return () => {
@@ -61,7 +67,7 @@ export const useFourPlayerGame = (
 				timerIntervalRef.current = null
 			}
 		}
-	}, [gameState?.currentTurn, gameState?.gameStatus, user?._id])
+	}, [gameState?.currentTurn, gameState?.gameStatus, gameState?.moveMadeAt, user?._id])
 
 	const handleCellClickWrapper = (row: number, col: number) => {
 		if (!gameState || !gameId) return

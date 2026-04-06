@@ -2,17 +2,20 @@ import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { GameState } from '@/entities/game'
 import { useSoundEffects } from '@/features/sound'
+import { Id } from '../../../../convex/_generated/dataModel'
 
 interface UseGameStatusProps {
 	gameState: GameState | null
 	checkWinner: () => 'You' | 'AI' | 'Opponent' | 'Draw' | null
 	isAI: boolean
+	currentUserId?: Id<'users'> | null
 }
 
 export const useGameStatus = ({
 	gameState,
 	checkWinner,
 	isAI,
+	currentUserId,
 }: UseGameStatusProps) => {
 	const [statusMessage, setStatusMessage] = useState('')
 	const { playWin, playLose, playDraw } = useSoundEffects()
@@ -47,17 +50,20 @@ export const useGameStatus = ({
 			if (gameState.gameMode === '1v1v1v1' && gameState.gameStatus === 'waiting') {
 				setStatusMessage(`Waiting for players (${gameState.userIds.length}/4)...`)
 			} else {
-				const message =
-					gameState.currentPlayerIndex === 0
-						? 'Your turn'
-						: isAI
-							? 'AI is thinking...'
-							: 'Opponent turn'
+				const isMyTurn = currentUserId
+					? gameState.currentTurn === currentUserId
+					: gameState.currentPlayerIndex === 0
+
+				const message = isMyTurn
+					? 'Your turn'
+					: isAI
+						? 'AI is thinking...'
+						: 'Opponent turn'
 
 				setStatusMessage(message)
 			}
 		}
-	}, [gameState, checkWinner, isAI, playWin, playLose, playDraw])
+	}, [gameState, checkWinner, isAI, currentUserId, playWin, playLose, playDraw])
 
 	return statusMessage
 }
